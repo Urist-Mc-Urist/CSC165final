@@ -1,2 +1,0 @@
-./comile.bat
-./run.bat
