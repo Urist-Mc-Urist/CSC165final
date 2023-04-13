@@ -41,10 +41,10 @@ public class MyGame extends VariableFrameRateGame
 	ScriptEngine jsEngine;
 
   //gameobject variables
-  	private GameObject avatar;
+  	private GameObject avatar, moon, testObj;
   	public GameObject getAvatar() { return avatar; }
-  	private ObjShape avatarShape;
-  	private TextureImage avatarSkin;
+  	private ObjShape avatarShape, moonTShape, testShape;
+  	private TextureImage avatarSkin, moonSkin, moonTerrain, testText;
 	private Light light1;
 
   //skybox
@@ -62,23 +62,43 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 	{	avatarShape = new Cube();
+		moonTShape = new TerrainPlane(1000);
+		testShape = new Cube();
 	}
 
 	@Override
 	public void loadTextures()
 	{	avatarSkin = new TextureImage("ice.jpg");
+		moonSkin = new TextureImage("checkerboardSmall.jpg");
+		moonTerrain = new TextureImage("moonHM.jpg");
+		testText = new TextureImage("checkerboardSmall.jpg");
 	}
 
 	@Override
 	public void buildObjects()
 	{	Matrix4f initialTranslation, initialScale;
 
-		// build dolphin in the center of the window
+		// build avatar in the center of the window
 		avatar = new GameObject(GameObject.root(), avatarShape, avatarSkin);
-		initialTranslation = (new Matrix4f()).translation(0,0,0);
+		initialTranslation = (new Matrix4f()).translation(0,0,-100);
 		initialScale = (new Matrix4f()).scaling(0.5f);
 		avatar.setLocalTranslation(initialTranslation);
 		avatar.setLocalScale(initialScale);
+
+		// build moon terrain
+		moon = new GameObject(GameObject.root(), moonTShape, moonSkin);
+		initialTranslation = (new Matrix4f()).translation(0,-50,0);
+		initialScale = (new Matrix4f()).scaling(100.0f);
+		moon.setLocalTranslation(initialTranslation);
+		moon.setLocalScale(initialScale);
+		moon.setHeightMap(moonTerrain);
+
+		// build test object
+		testObj = new GameObject(GameObject.root(), testShape, testText);
+		initialTranslation = (new Matrix4f()).translation(0,0,0);
+		initialScale = (new Matrix4f()).scaling(5f);
+		testObj.setLocalTranslation(initialTranslation);
+		testObj.setLocalScale(initialScale);
 	}
 
 	@Override
@@ -109,7 +129,7 @@ public class MyGame extends VariableFrameRateGame
 
 		// ------------- positioning the camera -------------
 		cam = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
-		cam.setLocation(new Vector3f(0,0,5));
+		cam.setLocation(new Vector3f(0,0,-5));
 
 		// ---------------------- Action Controls -----------------------------
 		// Up/Down
@@ -125,13 +145,18 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void update()
-	{	// rotate dolphin if not paused
+	{	// calculate elapsed time
 		lastFrameTime = currFrameTime;
 		currFrameTime = System.currentTimeMillis();
-		if (!paused) elapsTime += (currFrameTime - lastFrameTime) / 1000.0;
-		avatar.setLocalRotation((new Matrix4f()).rotation((float)elapsTime, 0, 1, 0));
+		elapsTime += (currFrameTime - lastFrameTime) / 1000.0;
+		// rotate test object
+		testObj.setLocalRotation((new Matrix4f()).rotation((float)elapsTime, 0, 1, 0));
 
+		// Update the input manager
 		im.update((float)elapsTime);
+
+		// set cam to follow the avatar
+		positionCamToAvatar();
 
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)elapsTime);
@@ -151,6 +176,17 @@ public class MyGame extends VariableFrameRateGame
 		fluffyClouds = (engine.getSceneGraph()).loadCubeMap("fluffyClouds");
 		(engine.getSceneGraph()).setActiveSkyBoxTexture(fluffyClouds);
 		(engine.getSceneGraph()).setSkyBoxEnabled(true);
+	}
+
+	private void positionCamToAvatar() {
+		Vector3f loc = avatar.getWorldLocation();
+		Vector3f fwd = avatar.getWorldForwardVector();
+		Vector3f up = avatar.getWorldUpVector();
+		Vector3f right = avatar.getWorldRightVector();
+		cam.setU(right);
+		cam.setV(up);
+		cam.setN(fwd);
+		cam.setLocation(loc.add(up.mul(1.3f)).add(fwd.mul(-5.0f)));
 	}
 
 	@Override
