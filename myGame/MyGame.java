@@ -21,6 +21,8 @@ import javax.script.ScriptException;
 
 import org.joml.*;
 
+import com.jogamp.openal.sound3d.Vec3f;
+
 public class MyGame extends VariableFrameRateGame
 {
 	private static Engine engine;
@@ -41,11 +43,13 @@ public class MyGame extends VariableFrameRateGame
 	ScriptEngine jsEngine;
 
   //gameobject variables
-  	private GameObject avatar, moon, testObj;
+  	private GameObject avatar, moon, opponent, testObj;
   	public GameObject getAvatar() { return avatar; }
-  	private ObjShape avatarShape, moonTShape, testShape;
-  	private TextureImage avatarSkin, moonSkin, moonTerrain, testText;
+  	private ObjShape avatarShape, moonTShape, oppShape, testShape;
+  	private TextureImage avatarSkin, moonSkin, moonTerrain, oppSkin, testText;
 	private Light light1;
+
+	Vector3f avatarUp, avatarFwd, avatarRight;
 
   //skybox
 	private int fluffyClouds;
@@ -61,14 +65,16 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	avatarShape = new Cube();
+	{	avatarShape = new ImportedModel("Paddle.obj");
+		oppShape = new Cube();
 		moonTShape = new TerrainPlane(1000);
 		testShape = new Cube();
 	}
 
 	@Override
 	public void loadTextures()
-	{	avatarSkin = new TextureImage("ice.jpg");
+	{	avatarSkin = new TextureImage("Paddle.png");
+		oppSkin = new TextureImage("ice.jpg");
 		moonSkin = new TextureImage("checkerboardSmall.jpg");
 		moonTerrain = new TextureImage("moonHM.jpg");
 		testText = new TextureImage("checkerboardSmall.jpg");
@@ -76,14 +82,22 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void buildObjects()
-	{	Matrix4f initialTranslation, initialScale;
+	{	Matrix4f initialTranslation, initialScale, initialRotation;
 
 		// build avatar in the center of the window
 		avatar = new GameObject(GameObject.root(), avatarShape, avatarSkin);
-		initialTranslation = (new Matrix4f()).translation(0,0,-100);
+		initialTranslation = (new Matrix4f()).translation(0,0,-50);
 		initialScale = (new Matrix4f()).scaling(0.5f);
+		initialRotation = (new Matrix4f()).rotation(-90, 1, 0, 0);
 		avatar.setLocalTranslation(initialTranslation);
+		//avatar.setLocalRotation(initialRotation);
 		avatar.setLocalScale(initialScale);
+
+		opponent = new GameObject(GameObject.root(), oppShape, oppSkin);
+		initialTranslation = (new Matrix4f()).translation(0,0,50);
+		initialScale = (new Matrix4f()).scaling(0.5f);
+		opponent.setLocalTranslation(initialTranslation);
+		opponent.setLocalScale(initialScale);
 
 		// build moon terrain
 		moon = new GameObject(GameObject.root(), moonTShape, moonSkin);
@@ -95,7 +109,7 @@ public class MyGame extends VariableFrameRateGame
 
 		// build test object
 		testObj = new GameObject(GameObject.root(), testShape, testText);
-		initialTranslation = (new Matrix4f()).translation(0,0,0);
+		initialTranslation = (new Matrix4f()).translation(0,20,0);
 		initialScale = (new Matrix4f()).scaling(5f);
 		testObj.setLocalTranslation(initialTranslation);
 		testObj.setLocalScale(initialScale);
