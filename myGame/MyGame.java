@@ -8,22 +8,35 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import javax.swing.*;
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+
 import org.joml.*;
 
 public class MyGame extends VariableFrameRateGame
 {
 	private static Engine engine;
 
+  //engine variables
 	private boolean paused=false;
 	private int counter=0;
 	private double lastFrameTime, currFrameTime, elapsTime;
 
+  //script variables
+  private File testScript;
+  private long fileLastModifiedTime = 0;
+  ScriptEngine jsEngine;
+
+  //gameobject variables
 	private GameObject dol;
 	private ObjShape dolS;
 	private TextureImage doltx;
 	private Light light1;
 
-	private int fluffyClouds; // skybox
+  //skybox
+	private int fluffyClouds;
 
 	public MyGame() { super(); }
 
@@ -66,7 +79,16 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void initializeGame()
-	{	lastFrameTime = System.currentTimeMillis();
+	{	
+    //initialize script engine
+    ScriptEngineManager factory = new ScriptEngineManager();
+    jsEngine = factory.getEngineByName("js");
+
+    //test script
+    testScript = new File ("assets/scripts/testScript.js");
+    this.runScript(testScript);
+    
+    lastFrameTime = System.currentTimeMillis();
 		currFrameTime = System.currentTimeMillis();
 		elapsTime = 0.0;
 		(engine.getRenderSystem()).setWindowDimensions(1900,1000);
@@ -124,4 +146,24 @@ public class MyGame extends VariableFrameRateGame
 		}
 		super.keyPressed(e);
 	}
+
+  private void runScript(File scriptFile){
+    try{
+      FileReader fileReader = new FileReader(scriptFile);
+      jsEngine.eval(fileReader);
+      fileReader.close();
+    }
+    catch (FileNotFoundException e1){ 
+      System.out.println(scriptFile + " not found " + e1); 
+    }
+    catch (IOException e2){
+      System.out.println("IO problem with " + scriptFile + e2); 
+    }
+    catch (ScriptException e3){
+      System.out.println("ScriptException in " + scriptFile + e3); 
+    }
+    catch (NullPointerException e4){
+      System.out.println ("Null ptr exception reading " + scriptFile + e4);
+    } 
+  }
 }
