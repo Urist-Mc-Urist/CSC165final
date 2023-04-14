@@ -43,16 +43,24 @@ public class MyGame extends VariableFrameRateGame
 	ScriptEngine jsEngine;
 
   //gameobject variables
-  	private GameObject avatar, moon, opponent, testObj;
+  	private GameObject avatar, moon, testObj, astroid;
+	private NPC opponent;
   	public GameObject getAvatar() { return avatar; }
-  	private ObjShape avatarShape, moonTShape, oppShape, testShape;
-  	private TextureImage avatarSkin, moonSkin, moonTerrain, oppSkin, testText;
+  	private ObjShape avatarShape, moonTShape, oppShape, testShape, astroShape;
+  	private TextureImage avatarSkin, moonSkin, moonTerrain, oppSkin, testText, astroSkin;
 	private Light light1;
 
 	Vector3f avatarUp, avatarFwd, avatarRight;
 
   //skybox
 	private int fluffyClouds;
+
+	// test variables
+	private boolean r = true;
+	private float n = 0.0f;
+	private int numColls = 0;
+	private boolean north = true;
+	private float m = 0.0f;
 
 	public MyGame() { super(); }
 
@@ -66,17 +74,19 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 	{	avatarShape = new ImportedModel("Paddle.obj");
-		oppShape = new Cube();
+		oppShape = new ImportedModel("Paddle.obj");
 		moonTShape = new TerrainPlane(1000);
+		astroShape = new ImportedModel("astroid.obj");
 		testShape = new Cube();
 	}
 
 	@Override
 	public void loadTextures()
 	{	avatarSkin = new TextureImage("Paddle.png");
-		oppSkin = new TextureImage("ice.jpg");
+		oppSkin = new TextureImage("Paddle.png");
 		moonSkin = new TextureImage("checkerboardSmall.jpg");
 		moonTerrain = new TextureImage("moonHM.jpg");
+		astroSkin = new TextureImage("astroid.png");
 		testText = new TextureImage("checkerboardSmall.jpg");
 	}
 
@@ -87,16 +97,19 @@ public class MyGame extends VariableFrameRateGame
 		// build avatar in the center of the window
 		avatar = new GameObject(GameObject.root(), avatarShape, avatarSkin);
 		initialTranslation = (new Matrix4f()).translation(0,0,-50);
-		initialScale = (new Matrix4f()).scaling(0.5f);
-		initialRotation = (new Matrix4f()).rotation(-90, 1, 0, 0);
+		initialScale = (new Matrix4f()).scaling(1.5f);
+		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		avatar.setLocalTranslation(initialTranslation);
-		//avatar.setLocalRotation(initialRotation);
+		avatar.setLocalRotation(initialRotation);
 		avatar.setLocalScale(initialScale);
 
-		opponent = new GameObject(GameObject.root(), oppShape, oppSkin);
+		opponent = new NPC(oppShape, oppSkin);
 		initialTranslation = (new Matrix4f()).translation(0,0,50);
-		initialScale = (new Matrix4f()).scaling(0.5f);
+		initialScale = (new Matrix4f()).scaling(1.5f);
+		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
+		// these call the NPC translation, rotation  and scale functions
 		opponent.setLocalTranslation(initialTranslation);
+		opponent.setLocalRotation(initialRotation);
 		opponent.setLocalScale(initialScale);
 
 		// build moon terrain
@@ -107,12 +120,21 @@ public class MyGame extends VariableFrameRateGame
 		moon.setLocalScale(initialScale);
 		moon.setHeightMap(moonTerrain);
 
+		// build astroid
+		astroid = new GameObject(GameObject.root(), astroShape, astroSkin);
+		initialTranslation = (new Matrix4f()).translation(0, 0, 0);
+		initialScale = (new Matrix4f()).scaling(1.0f);
+		astroid.setLocalTranslation(initialRotation);
+		astroid.setLocalScale(initialScale);
+
 		// build test object
+		/*
 		testObj = new GameObject(GameObject.root(), testShape, testText);
 		initialTranslation = (new Matrix4f()).translation(0,20,0);
 		initialScale = (new Matrix4f()).scaling(5f);
 		testObj.setLocalTranslation(initialTranslation);
 		testObj.setLocalScale(initialScale);
+		*/
 	}
 
 	@Override
@@ -164,7 +186,22 @@ public class MyGame extends VariableFrameRateGame
 		currFrameTime = System.currentTimeMillis();
 		elapsTime += (currFrameTime - lastFrameTime) / 1000.0;
 		// rotate test object
-		testObj.setLocalRotation((new Matrix4f()).rotation((float)elapsTime, 0, 1, 0));
+		astroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsTime, 0, 1, 0));
+
+		// test tracking AI
+		if (n >= 50) { r = false; }
+		if (n <= -50) { r = true; }
+		if (r) { n += 0.2f; }
+		else { n -= 0.2f; }
+
+		// Game update
+		if (north == true) { m += 0.3f; }
+		else { m -= 0.3f; }
+		astroid.setLocalLocation(new Vector3f(n, 0, m));
+		opponent.trackingAI(astroid);
+
+		// colision detection
+		detectCollision();
 
 		// Update the input manager
 		im.update((float)elapsTime);
@@ -175,9 +212,9 @@ public class MyGame extends VariableFrameRateGame
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)elapsTime);
 		String elapsTimeStr = Integer.toString(elapsTimeSec);
-		String counterStr = Integer.toString(counter);
+		String countColl = Integer.toString(numColls);
 		String dispStr1 = "Time = " + elapsTimeStr;
-		String dispStr2 = "Keyboard hits = " + counterStr;
+		String dispStr2 = "Collisions = " + countColl;
 		Vector3f hud1Color = new Vector3f(1,0,0);
 		Vector3f hud2Color = new Vector3f(0,0,1);
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
@@ -198,9 +235,34 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f up = avatar.getWorldUpVector();
 		Vector3f right = avatar.getWorldRightVector();
 		cam.setU(right);
-		cam.setV(up);
-		cam.setN(fwd);
-		cam.setLocation(loc.add(up.mul(1.3f)).add(fwd.mul(-5.0f)));
+		cam.setV(fwd);
+		cam.setN(up.mul(-1f));
+		cam.setLocation(loc.add(fwd.mul(2.5f)).add(up.mul(-8.0f)));
+	}
+
+	private void detectCollision() {
+		// detect player
+		if ((avatar.getLocalLocation().x() + 1.0f) >= astroid.getLocalLocation().x() &&
+			(avatar.getLocalLocation().x() - 1.0f) <= astroid.getLocalLocation().x() &&
+			(avatar.getLocalLocation().y() + 1.0f) >= astroid.getLocalLocation().y() &&
+			(avatar.getLocalLocation().y() - 1.0f) <= astroid.getLocalLocation().y() &&
+			(avatar.getLocalLocation().z() + 1.0f) >= astroid.getLocalLocation().z() &&
+			(avatar.getLocalLocation().z() - 1.0f) <= astroid.getLocalLocation().z()) {
+				System.out.println("Detected collision with avatar");
+				numColls++;
+				north = true;
+		}
+		// detect NPC
+		if ((opponent.getLocalLocation().x() + 1.0f) >= astroid.getLocalLocation().x() &&
+			(opponent.getLocalLocation().x() - 1.0f) <= astroid.getLocalLocation().x() &&
+			(opponent.getLocalLocation().y() + 1.0f) >= astroid.getLocalLocation().y() &&
+			(opponent.getLocalLocation().y() - 1.0f) <= astroid.getLocalLocation().y() &&
+			(opponent.getLocalLocation().z() + 1.0f) >= astroid.getLocalLocation().z() &&
+			(opponent.getLocalLocation().z() - 1.0f) <= astroid.getLocalLocation().z()) {
+				System.out.println("Detected collision with NPC");
+				numColls++;
+				north = false;
+		}
 	}
 
 	@Override

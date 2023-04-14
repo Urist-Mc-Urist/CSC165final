@@ -9,7 +9,7 @@ public class VertMovement extends AbstractInputAction {
     private MyGame game;
     private GameObject avatar;
     private Vector3f oldPosition, newPosition;
-    private float speed = 0.2f;
+    private float speed = 0.3f;
 
     public VertMovement(MyGame g) {
         game = g;
