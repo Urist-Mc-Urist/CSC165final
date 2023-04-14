@@ -9,7 +9,7 @@ public class NPC {
     private GameObject npc;
 
     private Vector3f ballLoc;
-    
+
     public NPC(ObjShape shape, TextureImage skin) {
         npc = new GameObject(GameObject.root(), shape, skin);
     }
@@ -29,4 +29,5 @@ public class NPC {
     public void setLocalScale(Matrix4f initialScale) { npc.setLocalScale(initialScale); }
 
     public Vector3f getLocalLocation() { return npc.getLocalLocation(); }
+
 }

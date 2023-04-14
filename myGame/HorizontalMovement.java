@@ -25,9 +25,11 @@ public class HorizontalMovement extends AbstractInputAction {
         if (keyValue.equals("A")) {
             newPosition = oldPosition.add(speed, 0.0f, 0.0f);
             avatar.setLocalLocation(newPosition);
+            game.getProtocolClient().sendMoveMessage(newPosition);
         } else if (keyValue.equals("D")) {
             newPosition = oldPosition.add(-speed, 0.0f, 0.0f);
             avatar.setLocalLocation(newPosition);
+            game.getProtocolClient().sendMoveMessage(newPosition);
         }
     }
 }

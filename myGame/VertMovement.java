@@ -25,9 +25,11 @@ public class VertMovement extends AbstractInputAction {
         if (keyValue.equals("W")) {
             newPosition = oldPosition.add(0.0f, speed, 0.0f);
             avatar.setLocalLocation(newPosition);
+            game.getProtocolClient().sendMoveMessage(newPosition);
         } else if (keyValue.equals("S")) {
             newPosition = oldPosition.add(0.0f, -speed, 0.0f);
             avatar.setLocalLocation(newPosition);
+            game.getProtocolClient().sendMoveMessage(newPosition);
         }
     }
 }
