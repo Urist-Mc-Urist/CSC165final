@@ -50,8 +50,8 @@ public class MyGame extends VariableFrameRateGame
 
 	private GameObject tor, avatar, x, y, z, moon, astroid;
   private NPC opponent;
-	private ObjShape torS, avatarShape, ghostS, dolS, linxS, linyS, linzS, moonTShape, oppShape, astroShape;
-	private TextureImage doltx, ghostT, avatarSkin, moonSkin, moonTerrain, oppSkin, astroSkin ;
+	private ObjShape torS, avatarShape, ghostS, dolS, linxS, linyS, linzS, moonTShape, AIShape, astroShape;
+	private TextureImage doltx, ghostT, avatarSkin, moonSkin, moonTerrain, AISkin, astroSkin ;
 	private Light light;
 
   Vector3f avatarUp, avatarFwd, avatarRight;
@@ -100,25 +100,25 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 	{	torS = new Torus(0.5f, 0.2f, 48);
-    avatarShape = new ImportedModel("Paddle.obj");
-		oppShape = new Cube();
-    astroShape = new ImportedModel("astroid.obj");
+    	avatarShape = new ImportedModel("Paddle.obj");
+		AIShape = new ImportedModel("Paddle.obj");
+    	astroShape = new ImportedModel("astroid.obj");
 		ghostS = new ImportedModel("Paddle.obj");
 		dolS = new ImportedModel("dolphinHighPoly.obj");
 		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
 		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
 		linzS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,0f,-3f));
-    moonTShape = new TerrainPlane(1000);
+    	moonTShape = new TerrainPlane(1000);
 	}
 
 	@Override
 	public void loadTextures()
 	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
 		ghostT = new TextureImage("Paddle.png");
-    avatarSkin = new TextureImage("Paddle.png");
-		oppSkin = new TextureImage("ice.jpg");
-    astroSkin = new TextureImage("astroid.png");
-    moonSkin = new TextureImage("checkerboardSmall.jpg");
+    	avatarSkin = new TextureImage("Paddle.png");
+		AISkin = new TextureImage("Paddle.png");
+    	astroSkin = new TextureImage("astroid.png");
+    	moonSkin = new TextureImage("checkerboardSmall.jpg");
 		moonTerrain = new TextureImage("moonHM.jpg");
 	}
 
@@ -144,7 +144,8 @@ public class MyGame extends VariableFrameRateGame
 		avatar.setLocalRotation(initialRotation);
 		avatar.setLocalScale(initialScale);
 
-		opponent = new NPC(oppShape, oppSkin);
+		opponent = new NPC(AIShape, AISkin);
+		initialTranslation = (new Matrix4f()).translation(0,0,50);
 		initialScale = (new Matrix4f()).scaling(1.5f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		opponent.setLocalTranslation(initialTranslation);
@@ -238,10 +239,10 @@ public class MyGame extends VariableFrameRateGame
 		//positionCameraBehindAvatar();
 		processNetworking((float)elapsedTime);
 
-    // set cam to follow the avatar
+    	// set cam to follow the avatar
 		positionCamToAvatar();
 
-    astroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
+    	astroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
 
 		// test tracking AI
 		if (n >= 50) { r = false; }
@@ -257,6 +258,13 @@ public class MyGame extends VariableFrameRateGame
 
 		// colision detection
 		detectCollision();
+		
+		// Check for Win/Loose Scenario
+		if (astroid.getWorldLocation().z() < -51) {
+			System.out.println("You Loose");
+		} else if (astroid.getWorldLocation().z() > 51) {
+			System.out.println("You Win");
+		}
 	}
 
 	private void positionCameraBehindAvatar()
