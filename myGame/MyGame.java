@@ -45,7 +45,8 @@ public class MyGame extends VariableFrameRateGame
 	// engines
 	private static Engine engine;
 	private PhysicsEngine physicsEngine;
-	private float vals[] = new float[16];
+	public PhysicsEngine getPhysicsEngine() { return physicsEngine; }
+	public float vals[] = new float[16];
 
 	// camera
 	private Camera cam;
@@ -62,14 +63,15 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 	// objects and avatars
-	private GameObject moon, asteroid;
-	private PhysicsObject asteroidP, avatarP, opponentP, moonP;
+	private GameObject moon, rightWall, leftWall, ceiling, asteroid;
+	private PhysicsObject asteroidP, avatarP, opponentP, moonP, rwP, lwP, ceilP;
+	public PhysicsObject getPhysicsAvatar() { return avatarP; }
 	private Avatar avatar;
 	public Avatar getAvatar() { return avatar; }
   	private NPC opponent;
 
 	// shapes and textures
-	private ObjShape avatarShape, ghostS, moonTShape, AIShape, astroShape;
+	private ObjShape avatarShape, ghostS, moonTShape, AIShape, astroShape, plane;
 	private TextureImage ghostT, avatarSkin, moonSkin, moonTerrain, AISkin, astroSkin;
 
 	// light
@@ -134,6 +136,7 @@ public class MyGame extends VariableFrameRateGame
     	astroShape = new ImportedModel("asteroid.obj");
 		ghostS = new ImportedModel("Paddle.obj");
     	moonTShape = new TerrainPlane(1000);
+		plane = new Plane();
 	}
 
 	@Override
@@ -164,18 +167,14 @@ public class MyGame extends VariableFrameRateGame
 		avatar = new Avatar(avatarShape, avatarSkin);
 		initialTranslation = (new Matrix4f()).translation(0,0,-50);
 		initialScale = (new Matrix4f()).scaling(1.5f);
-		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		avatar.setLocalTranslation(initialTranslation);
-		//avatar.setLocalRotation(initialRotation);
 		avatar.setLocalScale(initialScale);
 
 		// build opponent
 		opponent = new NPC(AIShape, AISkin);
 		initialTranslation = (new Matrix4f()).translation(0,0,50);
 		initialScale = (new Matrix4f()).scaling(1.5f);
-		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		opponent.setLocalTranslation(initialTranslation);
-		//opponent.setLocalRotation(initialRotation);
 		opponent.setLocalScale(initialScale);
 
 		// build moon terrain
@@ -185,6 +184,33 @@ public class MyGame extends VariableFrameRateGame
 		moon.setLocalTranslation(initialTranslation);
 		moon.setLocalScale(initialScale);
 		moon.setHeightMap(moonTerrain);
+
+		// build right wall
+		rightWall = new GameObject(GameObject.root(), plane, moonSkin);
+		initialTranslation = (new Matrix4f()).translation(50,0,0);
+		initialScale = (new Matrix4f()).scaling(100.0f);
+		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(90), 0, 0, 1);
+		rightWall.setLocalTranslation(initialTranslation);
+		rightWall.setLocalScale(initialScale);
+		rightWall.setLocalRotation(initialRotation);
+
+		// build left wall
+		leftWall = new GameObject(GameObject.root(), plane, moonSkin);
+		initialTranslation = (new Matrix4f()).translation(-50,0,0);
+		initialScale = (new Matrix4f()).scaling(100.0f);
+		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 0, 0, 1);
+		leftWall.setLocalTranslation(initialTranslation);
+		leftWall.setLocalScale(initialScale);
+		leftWall.setLocalRotation(initialRotation);
+
+		// build ceiling
+		ceiling = new GameObject(GameObject.root(), plane, moonSkin);
+		initialTranslation = (new Matrix4f()).translation(0,50,0);
+		initialScale = (new Matrix4f()).scaling(100.0f);
+		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(180), 0, 0, 1);
+		ceiling.setLocalTranslation(initialTranslation);
+		ceiling.setLocalScale(initialScale);
+		ceiling.setLocalRotation(initialRotation);
 
     	// build asteroid
 		asteroid = new GameObject(GameObject.root(), astroShape, astroSkin);
@@ -247,7 +273,10 @@ public class MyGame extends VariableFrameRateGame
 		// --------------------- Create Physics World ------------------------------
 		float mass = 1.0f;
 		float up[ ] = {0,1,0};
-		float velo[] = {0f,0f,50f}; // start velosity of the ball
+		float left[ ] = {-1,0,0};
+		float right[ ] = {1,0,0};
+		float down[ ] = {0,-1,0};
+		float velo[] = {10f,0f,50f}; // start velosity of the ball
 		double[ ] tempTransform;
 		Matrix4f translation;
 		
@@ -284,6 +313,30 @@ public class MyGame extends VariableFrameRateGame
 
 		moonP.setBounciness(1.0f);
 		moon.setPhysicsObject(moonP);
+
+		// right wall
+		translation = new Matrix4f(rightWall.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		rwP = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), tempTransform, left, 0.0f);
+
+		rwP.setBounciness(1.0f);
+		rightWall.setPhysicsObject(rwP);
+
+		// left wall
+		translation = new Matrix4f(leftWall.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		lwP = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), tempTransform, right, 0.0f);
+
+		lwP.setBounciness(1.0f);
+		leftWall.setPhysicsObject(lwP);
+
+		// ceiling
+		translation = new Matrix4f(ceiling.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		ceilP = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), tempTransform, down, 0.0f);
+
+		ceilP.setBounciness(1.0f);
+		ceiling.setPhysicsObject(ceilP);
 
 		// ------------------------- Networking --------------------------
 		// initialize multiplayer mode
@@ -335,7 +388,9 @@ public class MyGame extends VariableFrameRateGame
 		//else { n -= 0.2f; }
 
 		// Game update
+		//physicsEngine.removeObject(physicsEngine.nextUID());
 		opponent.trackingAI(asteroid);
+		rebuildOpponent();
 
 		// colision detection
 		Matrix4f mat = new Matrix4f();
@@ -410,30 +465,17 @@ public class MyGame extends VariableFrameRateGame
 			} 
 		} 
 	}
-  
-	private void detectCollision() {
-		// detect player
-		if ((avatar.getWorldLocation().x() + 1.0f) >= asteroid.getWorldLocation().x() &&
-			(avatar.getWorldLocation().x() - 1.0f) <= asteroid.getWorldLocation().x() &&
-			(avatar.getWorldLocation().y() + 1.0f) >= asteroid.getWorldLocation().y() &&
-			(avatar.getWorldLocation().y() - 1.0f) <= asteroid.getWorldLocation().y() &&
-			(avatar.getWorldLocation().z() + 1.0f) >= asteroid.getWorldLocation().z() &&
-			(avatar.getWorldLocation().z() - 1.0f) <= asteroid.getWorldLocation().z()) {
-				System.out.println("Detected collision with avatar");
-				numColls++;
-				north = true;
-		}
-		// detect NPC
-		if ((opponent.getWorldLocation().x() + 1.0f) >= asteroid.getWorldLocation().x() &&
-			(opponent.getWorldLocation().x() - 1.0f) <= asteroid.getWorldLocation().x() &&
-			(opponent.getWorldLocation().y() + 1.0f) >= asteroid.getWorldLocation().y() &&
-			(opponent.getWorldLocation().y() - 1.0f) <= asteroid.getWorldLocation().y() &&
-			(opponent.getWorldLocation().z() + 1.0f) >= asteroid.getWorldLocation().z() &&
-			(opponent.getWorldLocation().z() - 1.0f) <= asteroid.getWorldLocation().z()) {
-				System.out.println("Detected collision with NPC");
-				numColls++;
-				north = false;
-		}
+
+	private void rebuildOpponent() {
+		double[ ] tempTransform;
+		Matrix4f translation;
+		
+		translation = new Matrix4f(opponent.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		opponentP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 0f, tempTransform, 0.75f);
+
+		opponentP.setBounciness(1.0f);
+		opponent.setPhysicsObject(opponentP);
 	}
 
 	@Override

@@ -6,7 +6,6 @@ import tage.TextureImage;
 import org.joml.*;
 
 public class NPC extends GameObject{
-
     private Vector3f ballLoc;
 
     public NPC(ObjShape shape, TextureImage skin) {
@@ -20,4 +19,5 @@ public class NPC extends GameObject{
         // Tentative
         this.setLocalLocation(new Vector3f(ballLoc.x(), ballLoc.y(), z));
     }
+
 }
