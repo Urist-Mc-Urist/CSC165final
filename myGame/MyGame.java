@@ -48,27 +48,37 @@ public class MyGame extends VariableFrameRateGame
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject tor, avatar, x, y, z, moon, astroid;
-  private NPC opponent;
-	private ObjShape torS, avatarShape, ghostS, dolS, linxS, linyS, linzS, moonTShape, AIShape, astroShape;
-	private TextureImage doltx, ghostT, avatarSkin, moonSkin, moonTerrain, AISkin, astroSkin ;
+	private GameObject moon, astroid;
+	private Avatar avatar;
+	public Avatar getAvatar() { return avatar; }
+  	private NPC opponent;
+
+	private int playerNum = 0;
+	public void setPlayerNum(int num) { playerNum = num; }
+	public int getPlayerNum() { return playerNum; }
+	final private Vector3f AVATAR_ONE_POS = new Vector3f(0f,0f,-50f);
+	final private Vector3f AVATAR_TWO_POS = new Vector3f(0f,0f,50f);
+	public Vector3f getPlayerPosition() { return avatar.getWorldLocation(); }
+
+	private ObjShape avatarShape, ghostS, moonTShape, AIShape, astroShape;
+	private TextureImage ghostT, avatarSkin, moonSkin, moonTerrain, AISkin, astroSkin;
 	private Light light;
 
-  Vector3f avatarUp, avatarFwd, avatarRight;
+  	Vector3f avatarUp, avatarFwd, avatarRight;
 
 	private String serverAddress;
 	private int serverPort;
 	private ProtocolType serverProtocol;
 	private ProtocolClient protClient;
-  public ProtocolClient getProtocolClient() { return protClient; }
+  	public ProtocolClient getProtocolClient() { return protClient; }
 	private boolean isClientConnected = false;
 
-  //script variables
-  private File testScript;
-  private long fileLastModifiedTime = 0;
-  ScriptEngine jsEngine;
+	//script variables
+	private File testScript;
+	private long fileLastModifiedTime = 0;
+	ScriptEngine jsEngine;
 
-  //skybox
+  	//skybox
 	private int fluffyClouds;
 
   
@@ -99,21 +109,17 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void loadShapes()
-	{	torS = new Torus(0.5f, 0.2f, 48);
+	{	
     	avatarShape = new ImportedModel("Paddle.obj");
 		AIShape = new ImportedModel("Paddle.obj");
     	astroShape = new ImportedModel("astroid.obj");
 		ghostS = new ImportedModel("Paddle.obj");
-		dolS = new ImportedModel("dolphinHighPoly.obj");
-		linxS = new Line(new Vector3f(0f,0f,0f), new Vector3f(3f,0f,0f));
-		linyS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,3f,0f));
-		linzS = new Line(new Vector3f(0f,0f,0f), new Vector3f(0f,0f,-3f));
     	moonTShape = new TerrainPlane(1000);
 	}
 
 	@Override
 	public void loadTextures()
-	{	doltx = new TextureImage("Dolphin_HighPolyUV.png");
+	{	
 		ghostT = new TextureImage("Paddle.png");
     	avatarSkin = new TextureImage("Paddle.png");
 		AISkin = new TextureImage("Paddle.png");
@@ -135,21 +141,22 @@ public class MyGame extends VariableFrameRateGame
 	{	Matrix4f initialTranslation, initialRotation, initialScale;
 
 
-		// build avatar in the center of the window
-		avatar = new GameObject(GameObject.root(), avatarShape, avatarSkin);
+		// build avatar 
+		avatar = new Avatar(avatarShape, avatarSkin);
 		initialTranslation = (new Matrix4f()).translation(0,0,-50);
 		initialScale = (new Matrix4f()).scaling(1.5f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		avatar.setLocalTranslation(initialTranslation);
-		avatar.setLocalRotation(initialRotation);
+		//avatar.setLocalRotation(initialRotation);
 		avatar.setLocalScale(initialScale);
 
+		// build opponent
 		opponent = new NPC(AIShape, AISkin);
 		initialTranslation = (new Matrix4f()).translation(0,0,50);
 		initialScale = (new Matrix4f()).scaling(1.5f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		opponent.setLocalTranslation(initialTranslation);
-		opponent.setLocalRotation(initialRotation);
+		//opponent.setLocalRotation(initialRotation);
 		opponent.setLocalScale(initialScale);
 
 		// build moon terrain
@@ -160,7 +167,7 @@ public class MyGame extends VariableFrameRateGame
 		moon.setLocalScale(initialScale);
 		moon.setHeightMap(moonTerrain);
 
-    // build astroid
+    	// build astroid
 		astroid = new GameObject(GameObject.root(), astroShape, astroSkin);
 		initialTranslation = (new Matrix4f()).translation(0, 0, 0);
 		initialScale = (new Matrix4f()).scaling(1.0f);
@@ -181,15 +188,15 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void initializeGame()
 	{
-    //initialize script engine
-    ScriptEngineManager factory = new ScriptEngineManager();
-    jsEngine = factory.getEngineByName("js");
+		//initialize script engine
+		ScriptEngineManager factory = new ScriptEngineManager();
+		jsEngine = factory.getEngineByName("js");
 
-    //test script
-    testScript = new File ("assets/scripts/testScript.js");
-    this.runScript(testScript);
+		//test script
+		testScript = new File ("assets/scripts/testScript.js");
+		this.runScript(testScript);
 
-    prevTime = System.currentTimeMillis();
+		prevTime = System.currentTimeMillis();
 		startTime = System.currentTimeMillis();
 		(engine.getRenderSystem()).setWindowDimensions(1900,1000);
 
@@ -201,28 +208,41 @@ public class MyGame extends VariableFrameRateGame
 		// ----------------- INPUTS SECTION -----------------------------
 		im = engine.getInputManager();
 
-    VertMovement vertMovement = new VertMovement(this);
+    	// Up/Down
+		VertMovement vertMovement = new VertMovement(this);
 		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.W, vertMovement, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.S, vertMovement, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
-		//Left/Right
+		// Left/Right
 		HorizontalMovement horMovement = new HorizontalMovement(this);
 		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.A, horMovement, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.D, horMovement, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
-;
 
 
 		setupNetworking();
+
+		while (playerNum == 0) {
+			//protClient.processPackets();
+			System.out.println("waiting");
+		}
+
+		if (playerNum == 1) {
+			System.out.println("assigning player to player 1");
+			avatar.setLocalLocation(AVATAR_ONE_POS);
+		} else if (playerNum == 2) {
+			System.out.println("assigning player to player 2");
+			avatar.setLocalLocation(AVATAR_TWO_POS);
+			//cam.lookAt(0f, 0f, 0f);
+		}
 	}
 
-	public GameObject getAvatar() { return avatar; }
+	
 
 	@Override
 	public void update()
 	{	elapsedTime = System.currentTimeMillis() - prevTime;
 		prevTime = System.currentTimeMillis();
 		amt = elapsedTime * 0.03;
-		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
 		
 		// build and set HUD
 		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
@@ -234,13 +254,11 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f hud2Color = new Vector3f(0,0,1);
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
+		
 		// update inputs and camera
 		im.update((float)elapsedTime);
-		//positionCameraBehindAvatar();
-		processNetworking((float)elapsedTime);
-
-    	// set cam to follow the avatar
 		positionCamToAvatar();
+		processNetworking((float)elapsedTime);
 
     	astroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
 
@@ -261,28 +279,10 @@ public class MyGame extends VariableFrameRateGame
 		
 		// Check for Win/Loose Scenario
 		if (astroid.getWorldLocation().z() < -51) {
-			System.out.println("You Loose");
+			//System.out.println("You Loose");
 		} else if (astroid.getWorldLocation().z() > 51) {
-			System.out.println("You Win");
+			//System.out.println("You Win");
 		}
-	}
-
-	private void positionCameraBehindAvatar()
-	{	Vector4f u = new Vector4f(-1f,0f,0f,1f);
-		Vector4f v = new Vector4f(0f,1f,0f,1f);
-		Vector4f n = new Vector4f(0f,0f,1f,1f);
-		u.mul(avatar.getWorldRotation());
-		v.mul(avatar.getWorldRotation());
-		n.mul(avatar.getWorldRotation());
-		Matrix4f w = avatar.getWorldTranslation();
-		Vector3f position = new Vector3f(w.m30(), w.m31(), w.m32());
-		position.add(-n.x()*2f, -n.y()*2f, -n.z()*2f);
-		position.add(v.x()*.75f, v.y()*.75f, v.z()*.75f);
-		Camera c = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
-		c.setLocation(position);
-		c.setU(new Vector3f(u.x(),u.y(),u.z()));
-		c.setV(new Vector3f(v.x(),v.y(),v.z()));
-		c.setN(new Vector3f(n.x(),n.y(),n.z()));
 	}
 
   private void positionCamToAvatar() {
@@ -290,31 +290,39 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f fwd = avatar.getWorldForwardVector();
 		Vector3f up = avatar.getWorldUpVector();
 		Vector3f right = avatar.getWorldRightVector();
-		cam.setU(right);
-		cam.setV(fwd);
-		cam.setN(up.mul(-1f));
-		cam.setLocation(loc.add(fwd.mul(2.5f)).add(up.mul(-8.0f)));
+		if (playerNum == 1){ 
+			cam.setU(new Vector3f(-1.0f, 0.0f, 0.0f));
+			cam.setV(new Vector3f(0.0f, 1.0f, 0.0f));
+			cam.setN(new Vector3f(0.0f, 0.0f, 1.0f));
+			cam.setLocation(loc.add(fwd.mul(-8.0f)).add(up.mul(2.5f))); 
+		}
+		else if (playerNum == 2) { 
+			cam.setU(new Vector3f(1.0f, 0.0f, 0.0f));
+			cam.setV(new Vector3f(0.0f, 1.0f, 0.0f));
+			cam.setN(new Vector3f(0.0f, 0.0f, -1.0f));
+			cam.setLocation(loc.add(fwd.mul(8.0f)).add(up.mul(2.5f))); 
+		}
 	}
 
   private void detectCollision() {
 		// detect player
-		if ((avatar.getLocalLocation().x() + 1.0f) >= astroid.getLocalLocation().x() &&
-			(avatar.getLocalLocation().x() - 1.0f) <= astroid.getLocalLocation().x() &&
-			(avatar.getLocalLocation().y() + 1.0f) >= astroid.getLocalLocation().y() &&
-			(avatar.getLocalLocation().y() - 1.0f) <= astroid.getLocalLocation().y() &&
-			(avatar.getLocalLocation().z() + 1.0f) >= astroid.getLocalLocation().z() &&
-			(avatar.getLocalLocation().z() - 1.0f) <= astroid.getLocalLocation().z()) {
+		if ((avatar.getWorldLocation().x() + 1.0f) >= astroid.getWorldLocation().x() &&
+			(avatar.getWorldLocation().x() - 1.0f) <= astroid.getWorldLocation().x() &&
+			(avatar.getWorldLocation().y() + 1.0f) >= astroid.getWorldLocation().y() &&
+			(avatar.getWorldLocation().y() - 1.0f) <= astroid.getWorldLocation().y() &&
+			(avatar.getWorldLocation().z() + 1.0f) >= astroid.getWorldLocation().z() &&
+			(avatar.getWorldLocation().z() - 1.0f) <= astroid.getWorldLocation().z()) {
 				System.out.println("Detected collision with avatar");
 				numColls++;
 				north = true;
 		}
 		// detect NPC
-		if ((opponent.getLocalLocation().x() + 1.0f) >= astroid.getLocalLocation().x() &&
-			(opponent.getLocalLocation().x() - 1.0f) <= astroid.getLocalLocation().x() &&
-			(opponent.getLocalLocation().y() + 1.0f) >= astroid.getLocalLocation().y() &&
-			(opponent.getLocalLocation().y() - 1.0f) <= astroid.getLocalLocation().y() &&
-			(opponent.getLocalLocation().z() + 1.0f) >= astroid.getLocalLocation().z() &&
-			(opponent.getLocalLocation().z() - 1.0f) <= astroid.getLocalLocation().z()) {
+		if ((opponent.getWorldLocation().x() + 1.0f) >= astroid.getWorldLocation().x() &&
+			(opponent.getWorldLocation().x() - 1.0f) <= astroid.getWorldLocation().x() &&
+			(opponent.getWorldLocation().y() + 1.0f) >= astroid.getWorldLocation().y() &&
+			(opponent.getWorldLocation().y() - 1.0f) <= astroid.getWorldLocation().y() &&
+			(opponent.getWorldLocation().z() + 1.0f) >= astroid.getWorldLocation().z() &&
+			(opponent.getWorldLocation().z() - 1.0f) <= astroid.getWorldLocation().z()) {
 				System.out.println("Detected collision with NPC");
 				numColls++;
 				north = false;
@@ -379,8 +387,6 @@ public class MyGame extends VariableFrameRateGame
 		if (protClient != null)
 			protClient.processPackets();
 	}
-
-	public Vector3f getPlayerPosition() { return avatar.getWorldLocation(); }
 
 	public void setIsConnected(boolean value) { this.isClientConnected = value; }
 	

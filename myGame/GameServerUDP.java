@@ -8,6 +8,8 @@ import tage.networking.server.IClientInfo;
 
 public class GameServerUDP extends GameConnectionServer<UUID> 
 {
+	int playerCount = 0;
+
 	public GameServerUDP(int localPort) throws IOException 
 	{	super(localPort, ProtocolType.UDP);
 	}
@@ -28,7 +30,12 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 					UUID clientID = UUID.fromString(messageTokens[1]);
 					addClient(ci, clientID);
 					System.out.println("Join request received from - " + clientID.toString());
-					sendJoinedMessage(clientID, true);
+					if (playerCount < 2) {
+						playerCount++;
+						sendJoinedMessage(clientID, true);
+					} else {
+						sendJoinedMessage(clientID, false);
+					}
 				} 
 				catch (IOException e) 
 				{	e.printStackTrace();
@@ -78,9 +85,10 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 		{	System.out.println("trying to confirm join");
 			String message = new String("join,");
 			if(success)
-				message += "success";
+				message += "success," + Integer.toString(playerCount);
 			else
-				message += "failure";
+				message += "failure," + Integer.toString(playerCount);
+			System.out.println(message);
 			sendPacket(message, clientID);
 		} 
 		catch (IOException e) 
@@ -109,7 +117,8 @@ public class GameServerUDP extends GameConnectionServer<UUID>
 	// Message Format: (create,remoteId,x,y,z) where x, y, and z represent the position
 
 	public void sendCreateMessages(UUID clientID, String[] position)
-	{	try 
+	{	
+		try 
 		{	String message = new String("create," + clientID.toString());
 			message += "," + position[0];
 			message += "," + position[1];

@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.UUID;
 import java.util.Vector;
 import org.joml.*;
+import java.lang.Math;
 
 import tage.*;
 
@@ -24,8 +25,10 @@ public class GhostManager
 		ObjShape s = game.getGhostShape();
 		TextureImage t = game.getGhostTexture();
 		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position);
-		Matrix4f initialScale = (new Matrix4f()).scaling(0.25f);
+		Matrix4f initialScale = (new Matrix4f()).scaling(1.5f);
+		Matrix4f initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		newAvatar.setLocalScale(initialScale);
+		//newAvatar.setLocalRotation(initialRotation);
 		ghostAvatars.add(newAvatar);
 	}
 	

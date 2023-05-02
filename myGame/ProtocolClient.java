@@ -8,6 +8,8 @@ import java.util.UUID;
 import java.util.Vector;
 import org.joml.*;
 
+import com.jogamp.opengl.math.Matrix4;
+
 import tage.*;
 import tage.networking.client.GameConnectionClient;
 
@@ -36,17 +38,20 @@ public class ProtocolClient extends GameConnectionClient
 		if(messageTokens.length > 0)
 		{
 			// Handle JOIN message
-			// Format: (join,success) or (join,failure)
+			// Format: (join,success,player) or (join,failure,player)
 			if(messageTokens[0].compareTo("join") == 0)
 			{	if(messageTokens[1].compareTo("success") == 0)
 				{	System.out.println("join success confirmed");
 					game.setIsConnected(true);
+					int player = Integer.parseInt(messageTokens[2]);
+					game.setPlayerNum(player);
 					sendCreateMessage(game.getPlayerPosition());
 				}
 				if(messageTokens[1].compareTo("failure") == 0)
 				{	System.out.println("join failure confirmed");
 					game.setIsConnected(false);
-			}	}
+				}
+			}
 			
 			// Handle BYE message
 			// Format: (bye,remoteId)
@@ -129,7 +134,7 @@ public class ProtocolClient extends GameConnectionClient
 		{	e.printStackTrace();
 	}	}
 	
-	// Informs the server of the client’s Avatar’s position. The server 
+	// Informs the server of the clientï¿½s Avatarï¿½s position. The server 
 	// takes this message and forwards it to all other clients registered 
 	// with the server.
 	// Message Format: (create,localId,x,y,z) where x, y, and z represent the position
