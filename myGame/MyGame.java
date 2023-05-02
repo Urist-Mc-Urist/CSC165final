@@ -8,6 +8,12 @@ import tage.input.InputManager;
 import net.java.games.input.*;
 import net.java.games.input.Component.Identifier.*;
 import tage.nodeControllers.*;
+import tage.physics.PhysicsEngine;
+import tage.physics.PhysicsEngineFactory;
+import tage.physics.PhysicsObject;
+import tage.physics.JBullet.*;
+import com.bulletphysics.dynamics.RigidBody;
+import com.bulletphysics.collision.dispatch.CollisionObject;
 
 import java.lang.Math;
 
@@ -36,23 +42,40 @@ import com.jogamp.openal.sound3d.Vec3f;
 
 public class MyGame extends VariableFrameRateGame
 {
+	// engines
 	private static Engine engine;
+	private PhysicsEngine physicsEngine;
+	private float vals[] = new float[16];
 
+	// camera
 	private Camera cam;
 	public Camera getCam() { return cam; }
+
+	// managers
 	private InputManager im;
 	private GhostManager gm;
 
+	// update variables
 	private int counter=0;
 	private Vector3f currentPosition;
 	private Matrix4f initialTranslation, initialRotation, initialScale;
 	private double startTime, prevTime, elapsedTime, amt;
 
-	private GameObject moon, astroid;
+	// objects and avatars
+	private GameObject moon, asteroid;
+	private PhysicsObject asteroidP, avatarP, opponentP, moonP;
 	private Avatar avatar;
 	public Avatar getAvatar() { return avatar; }
   	private NPC opponent;
 
+	// shapes and textures
+	private ObjShape avatarShape, ghostS, moonTShape, AIShape, astroShape;
+	private TextureImage ghostT, avatarSkin, moonSkin, moonTerrain, AISkin, astroSkin;
+
+	// light
+	private Light light;
+
+	// multiplayer tracking
 	private int playerNum = 0;
 	public void setPlayerNum(int num) { playerNum = num; }
 	public int getPlayerNum() { return playerNum; }
@@ -60,12 +83,9 @@ public class MyGame extends VariableFrameRateGame
 	final private Vector3f AVATAR_TWO_POS = new Vector3f(0f,0f,50f);
 	public Vector3f getPlayerPosition() { return avatar.getWorldLocation(); }
 
-	private ObjShape avatarShape, ghostS, moonTShape, AIShape, astroShape;
-	private TextureImage ghostT, avatarSkin, moonSkin, moonTerrain, AISkin, astroSkin;
-	private Light light;
+  	Vector3f avatarUp, avatarFwd, avatarRight; // possibly unneeded
 
-  	Vector3f avatarUp, avatarFwd, avatarRight;
-
+	// server variables
 	private String serverAddress;
 	private int serverPort;
 	private ProtocolType serverProtocol;
@@ -81,7 +101,6 @@ public class MyGame extends VariableFrameRateGame
   	//skybox
 	private int fluffyClouds;
 
-  
 	// test variables
 	private boolean r = true;
 	private float n = 0.0f;
@@ -112,7 +131,7 @@ public class MyGame extends VariableFrameRateGame
 	{	
     	avatarShape = new ImportedModel("Paddle.obj");
 		AIShape = new ImportedModel("Paddle.obj");
-    	astroShape = new ImportedModel("astroid.obj");
+    	astroShape = new ImportedModel("asteroid.obj");
 		ghostS = new ImportedModel("Paddle.obj");
     	moonTShape = new TerrainPlane(1000);
 	}
@@ -123,7 +142,7 @@ public class MyGame extends VariableFrameRateGame
 		ghostT = new TextureImage("Paddle.png");
     	avatarSkin = new TextureImage("Paddle.png");
 		AISkin = new TextureImage("Paddle.png");
-    	astroSkin = new TextureImage("astroid.png");
+    	astroSkin = new TextureImage("asteroid.png");
     	moonSkin = new TextureImage("checkerboardSmall.jpg");
 		moonTerrain = new TextureImage("moonHM.jpg");
 	}
@@ -167,12 +186,12 @@ public class MyGame extends VariableFrameRateGame
 		moon.setLocalScale(initialScale);
 		moon.setHeightMap(moonTerrain);
 
-    	// build astroid
-		astroid = new GameObject(GameObject.root(), astroShape, astroSkin);
+    	// build asteroid
+		asteroid = new GameObject(GameObject.root(), astroShape, astroSkin);
 		initialTranslation = (new Matrix4f()).translation(0, 0, 0);
 		initialScale = (new Matrix4f()).scaling(1.0f);
-		astroid.setLocalTranslation(initialRotation);
-		astroid.setLocalScale(initialScale);
+		asteroid.setLocalTranslation(initialTranslation);
+		asteroid.setLocalScale(initialScale);
 
 	}
 
@@ -192,6 +211,13 @@ public class MyGame extends VariableFrameRateGame
 		ScriptEngineManager factory = new ScriptEngineManager();
 		jsEngine = factory.getEngineByName("js");
 
+		// initialize physics engine
+		String pEngine = "tage.physics.JBullet.JBulletPhysicsEngine";
+		float[] gravity = {0f, 0f, 0f};
+		physicsEngine = PhysicsEngineFactory.createPhysicsEngine(pEngine);
+		physicsEngine.initSystem();
+		physicsEngine.setGravity(gravity);
+
 		//test script
 		testScript = new File ("assets/scripts/testScript.js");
 		this.runScript(testScript);
@@ -205,7 +231,7 @@ public class MyGame extends VariableFrameRateGame
 		cam = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
 		cam.setLocation(new Vector3f(0,0,-5));
 
-		// ----------------- INPUTS SECTION -----------------------------
+		// ----------------- KEYBOARD INPUTS SECTION -----------------------------
 		im = engine.getInputManager();
 
     	// Up/Down
@@ -218,11 +244,52 @@ public class MyGame extends VariableFrameRateGame
 		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.A, horMovement, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.D, horMovement, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 
+		// --------------------- Create Physics World ------------------------------
+		float mass = 1.0f;
+		float up[ ] = {0,1,0};
+		float velo[] = {0f,0f,50f}; // start velosity of the ball
+		double[ ] tempTransform;
+		Matrix4f translation;
+		
+		// asteroid
+		translation = new Matrix4f(asteroid.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		asteroidP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 1f, tempTransform, 0.75f);
 
+		asteroidP.setBounciness(1.23f); // minimum speedup on each bounce without loosing velosity
+		asteroidP.setLinearVelocity(velo);
+		asteroidP.setFriction(0);
+		asteroid.setPhysicsObject(asteroidP);
+
+		// avatar
+		translation = new Matrix4f(avatar.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		avatarP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 0f, tempTransform, 0.75f);
+
+		avatarP.setBounciness(1.0f);
+		avatar.setPhysicsObject(avatarP);
+
+		// opponent
+		translation = new Matrix4f(opponent.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		opponentP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 0f, tempTransform, 0.75f);
+
+		opponentP.setBounciness(1.0f);
+		opponent.setPhysicsObject(opponentP);
+
+		// moon
+		translation = new Matrix4f(moon.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		moonP = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), tempTransform, up, 0.0f);
+
+		moonP.setBounciness(1.0f);
+		moon.setPhysicsObject(moonP);
+
+		// ------------------------- Networking --------------------------
+		// initialize multiplayer mode
 		setupNetworking();
-
+		System.out.println("waiting for server response");
 		while (playerNum == 0) {
-			//protClient.processPackets();
 			System.out.println("waiting");
 		}
 
@@ -232,7 +299,6 @@ public class MyGame extends VariableFrameRateGame
 		} else if (playerNum == 2) {
 			System.out.println("assigning player to player 2");
 			avatar.setLocalLocation(AVATAR_TWO_POS);
-			//cam.lookAt(0f, 0f, 0f);
 		}
 	}
 
@@ -260,32 +326,44 @@ public class MyGame extends VariableFrameRateGame
 		positionCamToAvatar();
 		processNetworking((float)elapsedTime);
 
-    	astroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
+    	asteroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
 
 		// test tracking AI
-		if (n >= 50) { r = false; }
-		if (n <= -50) { r = true; }
-		if (r) { n += 0.2f; }
-		else { n -= 0.2f; }
+		//if (n >= 50) { r = false; }
+		//if (n <= -50) { r = true; }
+		//if (r) { n += 0.2f; }
+		//else { n -= 0.2f; }
 
 		// Game update
-		if (north == true) { m += 0.3f; }
-		else { m -= 0.3f; }
-		astroid.setLocalLocation(new Vector3f(n, 0, m));
-		opponent.trackingAI(astroid);
+		opponent.trackingAI(asteroid);
 
 		// colision detection
-		detectCollision();
+		Matrix4f mat = new Matrix4f();
+		Matrix4f mat2 = new Matrix4f().identity();
+		checkForCollisions();
+		physicsEngine.update((float)elapsedTime);
+		for (GameObject go:engine.getSceneGraph().getGameObjects())
+		{ 
+			if (go.getPhysicsObject() != null)
+			{ 
+				mat.set(toFloatArray(go.getPhysicsObject().getTransform()));
+				mat2.set(3,0,mat.m30());
+				mat2.set(3,1,mat.m31());
+				mat2.set(3,2,mat.m32());
+				go.setLocalTranslation(mat2);
+			} 
+		}
+
 		
 		// Check for Win/Loose Scenario
-		if (astroid.getWorldLocation().z() < -51) {
+		if (asteroid.getWorldLocation().z() < -51) {
 			//System.out.println("You Loose");
-		} else if (astroid.getWorldLocation().z() > 51) {
+		} else if (asteroid.getWorldLocation().z() > 51) {
 			//System.out.println("You Win");
 		}
 	}
 
-  private void positionCamToAvatar() {
+  	private void positionCamToAvatar() {
 		Vector3f loc = avatar.getWorldLocation();
 		Vector3f fwd = avatar.getWorldForwardVector();
 		Vector3f up = avatar.getWorldUpVector();
@@ -304,25 +382,54 @@ public class MyGame extends VariableFrameRateGame
 		}
 	}
 
-  private void detectCollision() {
+	private void checkForCollisions()
+	{ 
+		com.bulletphysics.dynamics.DynamicsWorld dynamicsWorld;
+		com.bulletphysics.collision.broadphase.Dispatcher dispatcher;
+		com.bulletphysics.collision.narrowphase.PersistentManifold manifold;
+		com.bulletphysics.dynamics.RigidBody object1, object2;
+		com.bulletphysics.collision.narrowphase.ManifoldPoint contactPoint;
+		dynamicsWorld = ((JBulletPhysicsEngine)physicsEngine).getDynamicsWorld();
+		dispatcher = dynamicsWorld.getDispatcher();
+		int manifoldCount = dispatcher.getNumManifolds();
+		for (int i=0; i<manifoldCount; i++)
+		{ 
+			manifold = dispatcher.getManifoldByIndexInternal(i);
+			object1 = (com.bulletphysics.dynamics.RigidBody)manifold.getBody0();
+			object2 = (com.bulletphysics.dynamics.RigidBody)manifold.getBody1();
+			JBulletPhysicsObject obj1 = JBulletPhysicsObject.getJBulletPhysicsObject(object1);
+			JBulletPhysicsObject obj2 = JBulletPhysicsObject.getJBulletPhysicsObject(object2);
+			for (int j = 0; j < manifold.getNumContacts(); j++)
+			{ 
+				contactPoint = manifold.getContactPoint(j);
+				if (contactPoint.getDistance() < 1.0f)
+				{ 
+					System.out.println("---- hit between " + obj1 + " and " + obj2);
+					break;
+				} 
+			} 
+		} 
+	}
+  
+	private void detectCollision() {
 		// detect player
-		if ((avatar.getWorldLocation().x() + 1.0f) >= astroid.getWorldLocation().x() &&
-			(avatar.getWorldLocation().x() - 1.0f) <= astroid.getWorldLocation().x() &&
-			(avatar.getWorldLocation().y() + 1.0f) >= astroid.getWorldLocation().y() &&
-			(avatar.getWorldLocation().y() - 1.0f) <= astroid.getWorldLocation().y() &&
-			(avatar.getWorldLocation().z() + 1.0f) >= astroid.getWorldLocation().z() &&
-			(avatar.getWorldLocation().z() - 1.0f) <= astroid.getWorldLocation().z()) {
+		if ((avatar.getWorldLocation().x() + 1.0f) >= asteroid.getWorldLocation().x() &&
+			(avatar.getWorldLocation().x() - 1.0f) <= asteroid.getWorldLocation().x() &&
+			(avatar.getWorldLocation().y() + 1.0f) >= asteroid.getWorldLocation().y() &&
+			(avatar.getWorldLocation().y() - 1.0f) <= asteroid.getWorldLocation().y() &&
+			(avatar.getWorldLocation().z() + 1.0f) >= asteroid.getWorldLocation().z() &&
+			(avatar.getWorldLocation().z() - 1.0f) <= asteroid.getWorldLocation().z()) {
 				System.out.println("Detected collision with avatar");
 				numColls++;
 				north = true;
 		}
 		// detect NPC
-		if ((opponent.getWorldLocation().x() + 1.0f) >= astroid.getWorldLocation().x() &&
-			(opponent.getWorldLocation().x() - 1.0f) <= astroid.getWorldLocation().x() &&
-			(opponent.getWorldLocation().y() + 1.0f) >= astroid.getWorldLocation().y() &&
-			(opponent.getWorldLocation().y() - 1.0f) <= astroid.getWorldLocation().y() &&
-			(opponent.getWorldLocation().z() + 1.0f) >= astroid.getWorldLocation().z() &&
-			(opponent.getWorldLocation().z() - 1.0f) <= astroid.getWorldLocation().z()) {
+		if ((opponent.getWorldLocation().x() + 1.0f) >= asteroid.getWorldLocation().x() &&
+			(opponent.getWorldLocation().x() - 1.0f) <= asteroid.getWorldLocation().x() &&
+			(opponent.getWorldLocation().y() + 1.0f) >= asteroid.getWorldLocation().y() &&
+			(opponent.getWorldLocation().y() - 1.0f) <= asteroid.getWorldLocation().y() &&
+			(opponent.getWorldLocation().z() + 1.0f) >= asteroid.getWorldLocation().z() &&
+			(opponent.getWorldLocation().z() - 1.0f) <= asteroid.getWorldLocation().z()) {
 				System.out.println("Detected collision with NPC");
 				numColls++;
 				north = false;
@@ -335,26 +442,26 @@ public class MyGame extends VariableFrameRateGame
 		super.keyPressed(e);
 	}
 
-  // SCRIPTS
-  private void runScript(File scriptFile){
-    try{
-      FileReader fileReader = new FileReader(scriptFile);
-      jsEngine.eval(fileReader);
-      fileReader.close();
-    }
-    catch (FileNotFoundException e1){ 
-      System.out.println(scriptFile + " not found " + e1); 
-    }
-    catch (IOException e2){
-      System.out.println("IO problem with " + scriptFile + e2); 
-    }
-    catch (ScriptException e3){
-      System.out.println("ScriptException in " + scriptFile + e3); 
-    }
-    catch (NullPointerException e4){
-      System.out.println ("Null ptr exception reading " + scriptFile + e4);
-    } 
-  }
+	// SCRIPTS
+	private void runScript(File scriptFile){
+		try{
+		FileReader fileReader = new FileReader(scriptFile);
+		jsEngine.eval(fileReader);
+		fileReader.close();
+		}
+		catch (FileNotFoundException e1){ 
+		System.out.println(scriptFile + " not found " + e1); 
+		}
+		catch (IOException e2){
+		System.out.println("IO problem with " + scriptFile + e2); 
+		}
+		catch (ScriptException e3){
+		System.out.println("ScriptException in " + scriptFile + e3); 
+		}
+		catch (NullPointerException e4){
+		System.out.println ("Null ptr exception reading " + scriptFile + e4);
+		} 
+ 	}
 
 	// ---------- NETWORKING SECTION ----------------
 
@@ -398,4 +505,23 @@ public class MyGame extends VariableFrameRateGame
 			}
 		}
 	}
+
+	// ------------------ PHYSICS UTILITY FUNCTIONS ----------------
+	private float[] toFloatArray(double[] arr)
+	{ 
+		if (arr == null) return null;
+		int n = arr.length;
+		float[] ret = new float[n];
+		for (int i = 0; i < n; i++) { ret[i] = (float)arr[i]; }
+		return ret;
+	}
+	private double[] toDoubleArray(float[] arr)
+	{ 
+		if (arr == null) return null;
+		int n = arr.length;
+		double[] ret = new double[n];
+		for (int i = 0; i < n; i++) { ret[i] = (double)arr[i]; }
+		return ret;
+	}
 }
+
