@@ -66,6 +66,7 @@ public class MyGame extends VariableFrameRateGame
 	private GameObject moon, rightWall, leftWall, ceiling, asteroid;
 	private PhysicsObject asteroidP, avatarP, opponentP, moonP, rwP, lwP, ceilP;
 	public PhysicsObject getPhysicsAvatar() { return avatarP; }
+	public int oppID, avaID;
 	private Avatar avatar;
 	public Avatar getAvatar() { return avatar; }
   	private NPC opponent;
@@ -293,7 +294,8 @@ public class MyGame extends VariableFrameRateGame
 		// avatar
 		translation = new Matrix4f(avatar.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
-		avatarP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 0f, tempTransform, 0.75f);
+		avaID = physicsEngine.nextUID();
+		avatarP = physicsEngine.addSphereObject(avaID, 0f, tempTransform, 0.75f);
 
 		avatarP.setBounciness(1.0f);
 		avatar.setPhysicsObject(avatarP);
@@ -301,7 +303,8 @@ public class MyGame extends VariableFrameRateGame
 		// opponent
 		translation = new Matrix4f(opponent.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
-		opponentP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 0f, tempTransform, 0.75f);
+		oppID = physicsEngine.nextUID();
+		opponentP = physicsEngine.addSphereObject(oppID, 0f, tempTransform, 0.75f);
 
 		opponentP.setBounciness(1.0f);
 		opponent.setPhysicsObject(opponentP);
@@ -374,23 +377,20 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
 		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
 		
+		// -------------------- GAME UPDATE ---------------------
+
 		// update inputs and camera
 		im.update((float)elapsedTime);
 		positionCamToAvatar();
 		processNetworking((float)elapsedTime);
 
-    	asteroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
-
-		// test tracking AI
-		//if (n >= 50) { r = false; }
-		//if (n <= -50) { r = true; }
-		//if (r) { n += 0.2f; }
-		//else { n -= 0.2f; }
-
-		// Game update
-		//physicsEngine.removeObject(physicsEngine.nextUID());
+		// AI update
+		physicsEngine.removeObject(oppID);
 		opponent.trackingAI(asteroid);
 		rebuildOpponent();
+
+		// ball rotation
+    	asteroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
 
 		// colision detection
 		Matrix4f mat = new Matrix4f();
@@ -408,7 +408,6 @@ public class MyGame extends VariableFrameRateGame
 				go.setLocalTranslation(mat2);
 			} 
 		}
-
 		
 		// Check for Win/Loose Scenario
 		if (asteroid.getWorldLocation().z() < -51) {
@@ -472,7 +471,8 @@ public class MyGame extends VariableFrameRateGame
 		
 		translation = new Matrix4f(opponent.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
-		opponentP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 0f, tempTransform, 0.75f);
+		oppID = physicsEngine.nextUID();
+		opponentP = physicsEngine.addSphereObject(oppID, 0f, tempTransform, 0.75f);
 
 		opponentP.setBounciness(1.0f);
 		opponent.setPhysicsObject(opponentP);

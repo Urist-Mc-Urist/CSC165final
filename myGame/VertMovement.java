@@ -13,7 +13,7 @@ public class VertMovement extends AbstractInputAction {
     private Avatar avatar;
     private PhysicsObject physicalAvatar;
     private Vector3f oldPosition, newPosition;
-    private float speed = 0.3f;
+    private float speed = 0.5f;
 
     public VertMovement(MyGame g) {
         game = g;
@@ -24,10 +24,10 @@ public class VertMovement extends AbstractInputAction {
     @Override
     public void performAction(float time, Event e) {
         String keyValue = e.getComponent().toString();
-
         avatar = game.getAvatar();
-
         oldPosition = avatar.getWorldLocation();
+
+        physicsEngine.removeObject(game.avaID);
 
         if (keyValue.equals("W")) {
             newPosition = oldPosition.add(0.0f, speed, 0.0f);
@@ -48,7 +48,8 @@ public class VertMovement extends AbstractInputAction {
         
         translation = new Matrix4f(avatar.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(game.vals));
-		physicalAvatar = physicsEngine.addSphereObject(physicsEngine.nextUID(), 0f, tempTransform, 0.75f);
+        game.avaID = physicsEngine.nextUID();
+		physicalAvatar = physicsEngine.addSphereObject(game.avaID, 0f, tempTransform, 0.75f);
 
 		physicalAvatar.setBounciness(1.0f);
 		avatar.setPhysicsObject(physicalAvatar);
