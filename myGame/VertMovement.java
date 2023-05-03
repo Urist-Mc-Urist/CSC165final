@@ -45,11 +45,12 @@ public class VertMovement extends AbstractInputAction {
     public void rebuildAvatar() {
         double[ ] tempTransform;
 		Matrix4f translation;
+		float size[ ] = {15,15,1};
         
         translation = new Matrix4f(avatar.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(game.vals));
         game.avaID = physicsEngine.nextUID();
-		physicalAvatar = physicsEngine.addSphereObject(game.avaID, 0f, tempTransform, 0.75f);
+		physicalAvatar = physicsEngine.addBoxObject(game.avaID, 0f, tempTransform, size);
 
 		physicalAvatar.setBounciness(1.0f);
 		avatar.setPhysicsObject(physicalAvatar);

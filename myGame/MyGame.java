@@ -87,7 +87,7 @@ public class MyGame extends VariableFrameRateGame
 
 	// sound
 	private IAudioManager audioMgr;
-	private Sound oceanSound, hereSound;
+	private Sound testSound;
 
 	// multiplayer tracking
 	private int playerNum = 0;
@@ -143,8 +143,8 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 	{	
-    avatarShape = new AnimatedShape("ship.rkm", "ship.rks");
-    avatarShape.loadAnimation("ENGINE_VIBRATE", "engine_vibrate.rka");
+		avatarShape = new AnimatedShape("ship.rkm", "ship.rks");
+		avatarShape.loadAnimation("ENGINE_VIBRATE", "engine_vibrate.rka");
     	//avatarShape = new ImportedModel("Ship.obj");
 		AIShape = new ImportedModel("Paddle.obj");
     	astroShape = new ImportedModel("asteroid.obj");
@@ -179,11 +179,11 @@ public class MyGame extends VariableFrameRateGame
 
 		// build avatar 
 		avatar = new Avatar(avatarShape, avatarSkin);
-		initialTranslation = (new Matrix4f()).translation(0,0,-50);
+		initialTranslation = (new Matrix4f()).translation(0,-5,-50);
 		initialScale = (new Matrix4f()).scaling(1.5f);
 		avatar.setLocalTranslation(initialTranslation);
 		avatar.setLocalScale(initialScale);
-    avatarShape.playAnimation("ENGINE_VIBRATE", 1, AnimatedShape.EndType.LOOP, 100000000);
+    	avatarShape.playAnimation("ENGINE_VIBRATE", 1, AnimatedShape.EndType.LOOP, 100000000);
 
 		// build opponent
 		opponent = new NPC(AIShape, AISkin);
@@ -254,25 +254,15 @@ public class MyGame extends VariableFrameRateGame
 			System.out.println("Audio Manager failed to initialize!");
 			return;
 		}
-		resource1 = audioMgr.createAudioResource("assets/sounds/here.wav", AudioResourceType.AUDIO_SAMPLE);
-		resource2 = audioMgr.createAudioResource("assets/sounds/ocean.wav", AudioResourceType.AUDIO_SAMPLE);
-		hereSound = new Sound(resource1,
-		SoundType.SOUND_EFFECT, 100, true);
-		oceanSound = new Sound(resource2,
-		SoundType.SOUND_EFFECT, 100, true);
-		hereSound.initialize(audioMgr);
-		oceanSound.initialize(audioMgr);
-		hereSound.setMaxDistance(10.0f);
-		hereSound.setMinDistance(0.5f);
-		hereSound.setRollOff(5.0f);
-		oceanSound.setMaxDistance(10.0f);
-		oceanSound.setMinDistance(0.5f);
-		oceanSound.setRollOff(5.0f);
-		hereSound.setLocation(asteroid.getWorldLocation());
-		oceanSound.setLocation(ceiling.getWorldLocation());
+		resource1 = audioMgr.createAudioResource("assets/sounds/whitenoise.wav", AudioResourceType.AUDIO_SAMPLE);
+		testSound = new Sound(resource1,SoundType.SOUND_EFFECT, 10, true);
+		testSound.initialize(audioMgr);
+		testSound.setMaxDistance(100.0f);
+		testSound.setMinDistance(0.5f);
+		testSound.setRollOff(1000f);
+		testSound.setLocation(asteroid.getWorldLocation());
 		setEarParameters();
-		hereSound.play();
-		oceanSound.play();
+		testSound.play();
 	}
 
 	
@@ -321,10 +311,12 @@ public class MyGame extends VariableFrameRateGame
 
 		// --------------------- Create Physics World ------------------------------
 		float mass = 1.0f;
+		float size[ ] = {15,15,1};
 		float up[ ] = {0,1,0};
 		float left[ ] = {-1,0,0};
 		float right[ ] = {1,0,0};
 		float down[ ] = {0,-1,0};
+		float fwdA[ ] = {0,0,1};
 		float velo[] = {10f,0f,50f}; // start velosity of the ball
 		double[ ] tempTransform;
 		Matrix4f translation;
@@ -343,7 +335,7 @@ public class MyGame extends VariableFrameRateGame
 		translation = new Matrix4f(avatar.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
 		avaID = physicsEngine.nextUID();
-		avatarP = physicsEngine.addSphereObject(avaID, 0f, tempTransform, 0.75f);
+		avatarP = physicsEngine.addBoxObject(avaID, 0f, tempTransform, size);
 
 		avatarP.setBounciness(1.0f);
 		avatar.setPhysicsObject(avatarP);
@@ -427,8 +419,12 @@ public class MyGame extends VariableFrameRateGame
 		
 		// -------------------- GAME UPDATE ---------------------
 
-    //animations
-    avatarShape.updateAnimation();
+		//animations
+		avatarShape.updateAnimation();
+
+		//update sound
+		testSound.setLocation(asteroid.getWorldLocation());
+		setEarParameters();
 
 		// update inputs and camera
 		im.update((float)elapsedTime);
@@ -474,13 +470,13 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f up = avatar.getWorldUpVector();
 		Vector3f right = avatar.getWorldRightVector();
 		if (playerNum == 1){
-      cam.followObjFloating(avatar, -30f, 10f, 0.8f, false);
-      /*
+      		cam.followObjFloating(avatar, -30f, 10f, 0.8f, false);
+			/*
 			cam.setU(new Vector3f(-1.0f, 0.0f, 0.0f));
 			cam.setV(new Vector3f(0.0f, 1.0f, 0.0f));
 			cam.setN(new Vector3f(0.0f, 0.0f, 1.0f));
-			cam.setLocation(loc.add(fwd.mul(-8.0f)).add(up.mul(2.5f))); 
-      */
+			cam.setLocation(loc.add(fwd.mul(-12.0f)).add(up.mul(-4.5f))); 
+			*/
 		}
 		else if (playerNum == 2) { 
 			cam.setU(new Vector3f(1.0f, 0.0f, 0.0f));
@@ -625,8 +621,7 @@ public class MyGame extends VariableFrameRateGame
 	{ 
 		Camera camera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
 		audioMgr.getEar().setLocation(avatar.getWorldLocation());
-		audioMgr.getEar().setOrientation(camera.getN(),
-		new Vector3f(0.0f, 1.0f, 0.0f));
+		audioMgr.getEar().setOrientation(camera.getN(), new Vector3f(0.0f, 1.0f, 0.0f));
 	}
 
 }
