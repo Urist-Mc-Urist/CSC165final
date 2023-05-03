@@ -78,7 +78,8 @@ public class MyGame extends VariableFrameRateGame
   	private NPC opponent;
 
 	// shapes and textures
-	private ObjShape avatarShape, ghostS, moonTShape, AIShape, astroShape, plane;
+  private AnimatedShape avatarShape;
+	private ObjShape ghostS, moonTShape, AIShape, astroShape, plane; //avatarShape
 	private TextureImage ghostT, avatarSkin, moonSkin, moonTerrain, AISkin, astroSkin;
 
 	// light
@@ -142,7 +143,9 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void loadShapes()
 	{	
-    	avatarShape = new ImportedModel("Paddle.obj");
+    avatarShape = new AnimatedShape("ship.rkm", "ship.rks");
+    avatarShape.loadAnimation("ENGINE_VIBRATE", "engine_vibrate.rka");
+    	//avatarShape = new ImportedModel("Ship.obj");
 		AIShape = new ImportedModel("Paddle.obj");
     	astroShape = new ImportedModel("asteroid.obj");
 		ghostS = new ImportedModel("Paddle.obj");
@@ -154,7 +157,7 @@ public class MyGame extends VariableFrameRateGame
 	public void loadTextures()
 	{	
 		ghostT = new TextureImage("Paddle.png");
-    	avatarSkin = new TextureImage("Paddle.png");
+    	avatarSkin = new TextureImage("SpaceshipTex.png");
 		AISkin = new TextureImage("Paddle.png");
     	astroSkin = new TextureImage("asteroid.png");
     	moonSkin = new TextureImage("checkerboardSmall.jpg");
@@ -180,6 +183,7 @@ public class MyGame extends VariableFrameRateGame
 		initialScale = (new Matrix4f()).scaling(1.5f);
 		avatar.setLocalTranslation(initialTranslation);
 		avatar.setLocalScale(initialScale);
+    avatarShape.playAnimation("ENGINE_VIBRATE", 1, AnimatedShape.EndType.LOOP, 100000000);
 
 		// build opponent
 		opponent = new NPC(AIShape, AISkin);
@@ -423,6 +427,9 @@ public class MyGame extends VariableFrameRateGame
 		
 		// -------------------- GAME UPDATE ---------------------
 
+    //animations
+    avatarShape.updateAnimation();
+
 		// update inputs and camera
 		im.update((float)elapsedTime);
 		positionCamToAvatar();
@@ -466,11 +473,14 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f fwd = avatar.getWorldForwardVector();
 		Vector3f up = avatar.getWorldUpVector();
 		Vector3f right = avatar.getWorldRightVector();
-		if (playerNum == 1){ 
+		if (playerNum == 1){
+      cam.followObjFloating(avatar, -30f, 10f, 0.8f, false);
+      /*
 			cam.setU(new Vector3f(-1.0f, 0.0f, 0.0f));
 			cam.setV(new Vector3f(0.0f, 1.0f, 0.0f));
 			cam.setN(new Vector3f(0.0f, 0.0f, 1.0f));
 			cam.setLocation(loc.add(fwd.mul(-8.0f)).add(up.mul(2.5f))); 
+      */
 		}
 		else if (playerNum == 2) { 
 			cam.setU(new Vector3f(1.0f, 0.0f, 0.0f));

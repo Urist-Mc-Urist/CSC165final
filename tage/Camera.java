@@ -1,5 +1,6 @@
 package tage;
 import org.joml.*;
+import java.lang.Math;
 
 /**
 * A Camera specifies the rendering viewpoint for a Viewport.
@@ -96,4 +97,37 @@ public class Camera
 
 		return(view);
 	}
+
+  public void followObjFloating(GameObject target, float offsetX, float offsetY){
+		followObjFloating(target, offsetX, offsetY, 0, false);
+  }
+
+  public void followObjFloating(GameObject target, float offsetX, float offsetY, float strength, boolean isLooking){
+		Vector3f loc, fwd, up;
+    Vector3f camLoc = this.getLocation();
+
+		loc = target.getWorldLocation();
+		fwd = target.getWorldForwardVector();
+		up = target.getWorldUpVector();
+
+    //position
+		Vector3f idealLoc = loc.add(up.mul(offsetY).add(fwd.mul(offsetX)));
+    Vector3f deltaP = idealLoc.sub(camLoc);
+    deltaP.mul(0.03f);
+    if(deltaP.isFinite()){
+      this.setLocation(camLoc.add(deltaP));
+    }
+
+    //rotation
+    if(strength == 0) { return; }
+    if(isLooking) { return; }
+
+    loc = target.getWorldLocation();
+    up = target.getWorldUpVector();
+    Vector3f lookingAt = this.getLocation().add(getN().mul(Math.abs(offsetX)));
+    Vector3f deltaR = loc.add(up.mul(0.5f * offsetY)).sub(lookingAt);
+    //the closer to 0 strength is the looser the camera is
+    deltaR.mul(strength);
+    lookAt(lookingAt.add(deltaR));
+  }
 }
