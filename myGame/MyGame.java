@@ -1,6 +1,12 @@
 package myGame;
 
 import tage.*;
+import tage.audio.AudioManagerFactory;
+import tage.audio.AudioResource;
+import tage.audio.AudioResourceType;
+import tage.audio.IAudioManager;
+import tage.audio.Sound;
+import tage.audio.SoundType;
 import tage.shapes.*;
 import tage.input.*;
 import tage.input.action.*;
@@ -77,6 +83,10 @@ public class MyGame extends VariableFrameRateGame
 
 	// light
 	private Light light;
+
+	// sound
+	private IAudioManager audioMgr;
+	private Sound oceanSound, hereSound;
 
 	// multiplayer tracking
 	private int playerNum = 0;
@@ -231,6 +241,37 @@ public class MyGame extends VariableFrameRateGame
 		(engine.getSceneGraph()).addLight(light);
 	}
 
+	public void initAudio()
+	{ 
+		AudioResource resource1, resource2;
+		audioMgr = AudioManagerFactory.createAudioManager("tage.audio.joal.JOALAudioManager");
+		if (!audioMgr.initialize())
+		{ 
+			System.out.println("Audio Manager failed to initialize!");
+			return;
+		}
+		resource1 = audioMgr.createAudioResource("assets/sounds/here.wav", AudioResourceType.AUDIO_SAMPLE);
+		resource2 = audioMgr.createAudioResource("assets/sounds/ocean.wav", AudioResourceType.AUDIO_SAMPLE);
+		hereSound = new Sound(resource1,
+		SoundType.SOUND_EFFECT, 100, true);
+		oceanSound = new Sound(resource2,
+		SoundType.SOUND_EFFECT, 100, true);
+		hereSound.initialize(audioMgr);
+		oceanSound.initialize(audioMgr);
+		hereSound.setMaxDistance(10.0f);
+		hereSound.setMinDistance(0.5f);
+		hereSound.setRollOff(5.0f);
+		oceanSound.setMaxDistance(10.0f);
+		oceanSound.setMinDistance(0.5f);
+		oceanSound.setRollOff(5.0f);
+		hereSound.setLocation(asteroid.getWorldLocation());
+		oceanSound.setLocation(ceiling.getWorldLocation());
+		setEarParameters();
+		hereSound.play();
+		oceanSound.play();
+	}
+
+	
 	@Override
 	public void initializeGame()
 	{
@@ -248,6 +289,9 @@ public class MyGame extends VariableFrameRateGame
 		//test script
 		testScript = new File ("assets/scripts/testScript.js");
 		this.runScript(testScript);
+
+		//initialize audio
+		initAudio();
 
 		prevTime = System.currentTimeMillis();
 		startTime = System.currentTimeMillis();
@@ -303,7 +347,7 @@ public class MyGame extends VariableFrameRateGame
 		// opponent
 		translation = new Matrix4f(opponent.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
-		oppID = physicsEngine.nextUID();
+		oppID = physicsEngine.nextUID(); 
 		opponentP = physicsEngine.addSphereObject(oppID, 0f, tempTransform, 0.75f);
 
 		opponentP.setBounciness(1.0f);
@@ -565,5 +609,15 @@ public class MyGame extends VariableFrameRateGame
 		for (int i = 0; i < n; i++) { ret[i] = (double)arr[i]; }
 		return ret;
 	}
+
+	// ----------------------SOUND FUNCTIONS ---------------------
+	public void setEarParameters()
+	{ 
+		Camera camera = (engine.getRenderSystem()).getViewport("MAIN").getCamera();
+		audioMgr.getEar().setLocation(avatar.getWorldLocation());
+		audioMgr.getEar().setOrientation(camera.getN(),
+		new Vector3f(0.0f, 1.0f, 0.0f));
+	}
+
 }
 
