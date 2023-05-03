@@ -7,6 +7,7 @@ import tage.audio.AudioResourceType;
 import tage.audio.IAudioManager;
 import tage.audio.Sound;
 import tage.audio.SoundType;
+import tage.audio.joal.JOALAudioManager;
 import tage.shapes.*;
 import tage.input.*;
 import tage.input.action.*;
@@ -87,7 +88,7 @@ public class MyGame extends VariableFrameRateGame
 
 	// sound
 	private IAudioManager audioMgr;
-	private Sound testSound;
+	private Sound backgroundMusic, astroSound;
 
 	// multiplayer tracking
 	private int playerNum = 0;
@@ -247,6 +248,8 @@ public class MyGame extends VariableFrameRateGame
 
 	public void initAudio()
 	{ 
+		// https://pixabay.com/music/upbeat-space-120280/ - space
+		// https://pixabay.com/music/techno-trance-background-loop-melodic-techno-04-3822/ - zen man
 		AudioResource resource1, resource2;
 		audioMgr = AudioManagerFactory.createAudioManager("tage.audio.joal.JOALAudioManager");
 		if (!audioMgr.initialize())
@@ -254,15 +257,26 @@ public class MyGame extends VariableFrameRateGame
 			System.out.println("Audio Manager failed to initialize!");
 			return;
 		}
-		resource1 = audioMgr.createAudioResource("assets/sounds/whitenoise.wav", AudioResourceType.AUDIO_SAMPLE);
-		testSound = new Sound(resource1,SoundType.SOUND_EFFECT, 10, true);
-		testSound.initialize(audioMgr);
-		testSound.setMaxDistance(100.0f);
-		testSound.setMinDistance(0.5f);
-		testSound.setRollOff(1000f);
-		testSound.setLocation(asteroid.getWorldLocation());
+		resource1 = audioMgr.createAudioResource("assets/sounds/zenman.wav", AudioResourceType.AUDIO_SAMPLE);
+		resource2 = audioMgr.createAudioResource("assets/sounds/test.wav", AudioResourceType.AUDIO_SAMPLE);
+		
+		backgroundMusic = new Sound(resource1,SoundType.SOUND_MUSIC, 5, true);
+		backgroundMusic.initialize(audioMgr);
+		backgroundMusic.setMaxDistance(100.0f);
+		backgroundMusic.setMinDistance(0.5f);
+		backgroundMusic.setRollOff(1000f);
+		backgroundMusic.setLocation(ceiling.getWorldLocation());
 		setEarParameters();
-		testSound.play();
+		backgroundMusic.play();
+
+		astroSound = new Sound(resource2, SoundType.SOUND_EFFECT, 10, true);
+		astroSound.initialize(audioMgr);
+		astroSound.setMaxDistance(100.0f);
+		astroSound.setMinDistance(0.5f);
+		astroSound.setRollOff(1000f);
+		astroSound.setLocation(asteroid.getWorldLocation());
+		setEarParameters();
+		astroSound.play();
 	}
 
 	
@@ -317,7 +331,7 @@ public class MyGame extends VariableFrameRateGame
 		float right[ ] = {1,0,0};
 		float down[ ] = {0,-1,0};
 		float fwdA[ ] = {0,0,1};
-		float velo[] = {10f,0f,50f}; // start velosity of the ball
+		float velo[] = {10f,5f,35f}; // start velosity of the ball
 		double[ ] tempTransform;
 		Matrix4f translation;
 		
@@ -326,9 +340,10 @@ public class MyGame extends VariableFrameRateGame
 		tempTransform = toDoubleArray(translation.get(vals));
 		asteroidP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 1f, tempTransform, 0.75f);
 
-		asteroidP.setBounciness(1.23f); // minimum speedup on each bounce without loosing velosity
+		asteroidP.setBounciness(1.1f); // minimum speedup on each bounce without loosing velosity
 		asteroidP.setLinearVelocity(velo);
 		asteroidP.setFriction(0);
+		asteroidP.setDamping(0, 0);
 		asteroid.setPhysicsObject(asteroidP);
 
 		// avatar
@@ -423,7 +438,7 @@ public class MyGame extends VariableFrameRateGame
 		avatarShape.updateAnimation();
 
 		//update sound
-		testSound.setLocation(asteroid.getWorldLocation());
+		astroSound.setLocation(asteroid.getWorldLocation());
 		setEarParameters();
 
 		// update inputs and camera
@@ -469,21 +484,7 @@ public class MyGame extends VariableFrameRateGame
 		Vector3f fwd = avatar.getWorldForwardVector();
 		Vector3f up = avatar.getWorldUpVector();
 		Vector3f right = avatar.getWorldRightVector();
-		if (playerNum == 1){
-      		cam.followObjFloating(avatar, -30f, 10f, 0.8f, false);
-			/*
-			cam.setU(new Vector3f(-1.0f, 0.0f, 0.0f));
-			cam.setV(new Vector3f(0.0f, 1.0f, 0.0f));
-			cam.setN(new Vector3f(0.0f, 0.0f, 1.0f));
-			cam.setLocation(loc.add(fwd.mul(-12.0f)).add(up.mul(-4.5f))); 
-			*/
-		}
-		else if (playerNum == 2) { 
-			cam.setU(new Vector3f(1.0f, 0.0f, 0.0f));
-			cam.setV(new Vector3f(0.0f, 1.0f, 0.0f));
-			cam.setN(new Vector3f(0.0f, 0.0f, -1.0f));
-			cam.setLocation(loc.add(fwd.mul(8.0f)).add(up.mul(2.5f))); 
-		}
+      	cam.followObjFloating(avatar, -30f, 10f, 0.8f, false);
 	}
 
 	private void checkForCollisions()

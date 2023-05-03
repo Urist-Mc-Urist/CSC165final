@@ -30,13 +30,11 @@ public class HorizontalMovement extends AbstractInputAction {
         physicsEngine.removeObject(game.avaID);
 
         if (keyValue.equals("A")) {
-            if (game.getPlayerNum() == 1) { newPosition = oldPosition.add(speed, 0.0f, 0.0f); }
-            else if (game.getPlayerNum() == 2) { newPosition = oldPosition.add(-speed, 0.0f, 0.0f); }
+            newPosition = oldPosition.add(speed, 0.0f, 0.0f);
             avatar.setLocalLocation(newPosition);
             game.getProtocolClient().sendMoveMessage(newPosition);
         } else if (keyValue.equals("D")) {
-            if (game.getPlayerNum() == 1) { newPosition = oldPosition.add(-speed, 0.0f, 0.0f); }
-            else if (game.getPlayerNum() == 2) { newPosition = oldPosition.add(speed, 0.0f, 0.0f); }
+            newPosition = oldPosition.add(-speed, 0.0f, 0.0f);
             avatar.setLocalLocation(newPosition);
             game.getProtocolClient().sendMoveMessage(newPosition);
         }
