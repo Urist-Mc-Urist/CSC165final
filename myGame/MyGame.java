@@ -79,9 +79,9 @@ public class MyGame extends VariableFrameRateGame
   	private NPC opponent;
 
 	// shapes and textures
-  private AnimatedShape avatarShape;
+  	private AnimatedShape avatarShape;
 	private ObjShape ghostS, moonTShape, AIShape, astroShape, plane; //avatarShape
-	private TextureImage ghostT, avatarSkin, moonSkin, moonTerrain, AISkin, astroSkin;
+	private TextureImage ghostT, avatarSkin, moonSkin, border, moonTerrain, AISkin, astroSkin;
 
 	// light
 	private Light light;
@@ -163,12 +163,13 @@ public class MyGame extends VariableFrameRateGame
     	astroSkin = new TextureImage("asteroid.png");
     	moonSkin = new TextureImage("checkerboardSmall.jpg");
 		moonTerrain = new TextureImage("moonHM.jpg");
+		border = new TextureImage("NeonBorder.png");
 	}
 
   @Override
 	public void loadSkyBoxes()
 	{
-		fluffyClouds = (engine.getSceneGraph()).loadCubeMap("fluffyClouds");
+		fluffyClouds = (engine.getSceneGraph()).loadCubeMap("starrySky");
 		(engine.getSceneGraph()).setActiveSkyBoxTexture(fluffyClouds);
 		(engine.getSceneGraph()).setSkyBoxEnabled(true);
 	}
@@ -202,7 +203,7 @@ public class MyGame extends VariableFrameRateGame
 		moon.setHeightMap(moonTerrain);
 
 		// build right wall
-		rightWall = new GameObject(GameObject.root(), plane, moonSkin);
+		rightWall = new GameObject(GameObject.root(), plane, border);
 		initialTranslation = (new Matrix4f()).translation(50,0,0);
 		initialScale = (new Matrix4f()).scaling(100.0f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(90), 0, 0, 1);
@@ -211,7 +212,7 @@ public class MyGame extends VariableFrameRateGame
 		rightWall.setLocalRotation(initialRotation);
 
 		// build left wall
-		leftWall = new GameObject(GameObject.root(), plane, moonSkin);
+		leftWall = new GameObject(GameObject.root(), plane, border);
 		initialTranslation = (new Matrix4f()).translation(-50,0,0);
 		initialScale = (new Matrix4f()).scaling(100.0f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 0, 0, 1);
@@ -220,7 +221,7 @@ public class MyGame extends VariableFrameRateGame
 		leftWall.setLocalRotation(initialRotation);
 
 		// build ceiling
-		ceiling = new GameObject(GameObject.root(), plane, moonSkin);
+		ceiling = new GameObject(GameObject.root(), plane, border);
 		initialTranslation = (new Matrix4f()).translation(0,50,0);
 		initialScale = (new Matrix4f()).scaling(100.0f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(180), 0, 0, 1);
@@ -331,7 +332,6 @@ public class MyGame extends VariableFrameRateGame
 		float left[ ] = {-1,0,0};
 		float right[ ] = {1,0,0};
 		float down[ ] = {0,-1,0};
-		float fwdA[ ] = {0,0,1};
 		float velo[] = {10f,5f,35f}; // start velosity of the ball
 		double[ ] tempTransform;
 		Matrix4f translation;
