@@ -248,8 +248,6 @@ public class MyGame extends VariableFrameRateGame
 
 	public void initAudio()
 	{ 
-		// https://pixabay.com/music/upbeat-space-120280/ - space
-		// https://pixabay.com/music/techno-trance-background-loop-melodic-techno-04-3822/ - zen man
 		AudioResource resource1, resource2;
 		audioMgr = AudioManagerFactory.createAudioManager("tage.audio.joal.JOALAudioManager");
 		if (!audioMgr.initialize())
@@ -257,8 +255,12 @@ public class MyGame extends VariableFrameRateGame
 			System.out.println("Audio Manager failed to initialize!");
 			return;
 		}
-		resource1 = audioMgr.createAudioResource("assets/sounds/zenman.wav", AudioResourceType.AUDIO_SAMPLE);
-		resource2 = audioMgr.createAudioResource("assets/sounds/test.wav", AudioResourceType.AUDIO_SAMPLE);
+
+		// https://pixabay.com/music/upbeat-space-120280/ - space.wav
+		// https://pixabay.com/music/techno-trance-background-loop-melodic-techno-04-3822/ - zenman.wav
+		// https://pixabay.com/sound-effects/054883-bounce-38937/ - bounce.wav
+		resource1 = audioMgr.createAudioResource("assets/sounds/space.wav", AudioResourceType.AUDIO_SAMPLE);
+		resource2 = audioMgr.createAudioResource("assets/sounds/bounce.wav", AudioResourceType.AUDIO_SAMPLE);
 		
 		backgroundMusic = new Sound(resource1,SoundType.SOUND_MUSIC, 5, true);
 		backgroundMusic.initialize(audioMgr);
@@ -266,17 +268,16 @@ public class MyGame extends VariableFrameRateGame
 		backgroundMusic.setMinDistance(0.5f);
 		backgroundMusic.setRollOff(1000f);
 		backgroundMusic.setLocation(ceiling.getWorldLocation());
-		setEarParameters();
-		backgroundMusic.play();
 
-		astroSound = new Sound(resource2, SoundType.SOUND_EFFECT, 10, true);
+		astroSound = new Sound(resource2, SoundType.SOUND_EFFECT, 50, false);
 		astroSound.initialize(audioMgr);
 		astroSound.setMaxDistance(100.0f);
 		astroSound.setMinDistance(0.5f);
-		astroSound.setRollOff(1000f);
+		astroSound.setRollOff(0.1f);
 		astroSound.setLocation(asteroid.getWorldLocation());
+		
 		setEarParameters();
-		astroSound.play();
+		backgroundMusic.play();
 	}
 
 	
@@ -340,7 +341,7 @@ public class MyGame extends VariableFrameRateGame
 		tempTransform = toDoubleArray(translation.get(vals));
 		asteroidP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 1f, tempTransform, 0.75f);
 
-		asteroidP.setBounciness(1.1f); // minimum speedup on each bounce without loosing velosity
+		asteroidP.setBounciness(1.01f); // minimum speedup on each bounce without loosing velosity
 		asteroidP.setLinearVelocity(velo);
 		asteroidP.setFriction(0);
 		asteroidP.setDamping(0, 0);
@@ -510,6 +511,11 @@ public class MyGame extends VariableFrameRateGame
 				if (contactPoint.getDistance() < 1.0f)
 				{ 
 					System.out.println("---- hit between " + obj1 + " and " + obj2);
+
+					astroSound.setLocation(asteroid.getWorldLocation());
+					setEarParameters();
+					astroSound.play();
+
 					break;
 				} 
 			} 
