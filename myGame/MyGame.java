@@ -70,17 +70,19 @@ public class MyGame extends VariableFrameRateGame
 	private double startTime, prevTime, elapsedTime, amt;
 
 	// objects and avatars
-	private GameObject moon, rightWall, leftWall, ceiling, asteroid;
+	private GameObject moon, asteroid;
+	private Border rightWall, leftWall, ceiling;
 	private PhysicsObject asteroidP, avatarP, opponentP, moonP, rwP, lwP, ceilP;
 	public PhysicsObject getPhysicsAvatar() { return avatarP; }
-	public int oppID, avaID;
+	public int oppID, avaID, rwID, lwID, ceilID;
+	//public float left[ ], right[ ], down[ ];
 	private Avatar avatar;
 	public Avatar getAvatar() { return avatar; }
   	private NPC opponent;
 
 	// shapes and textures
   	private AnimatedShape avatarShape;
-	private ObjShape ghostS, moonTShape, AIShape, astroShape, plane; //avatarShape
+	private ObjShape ghostS, moonTShape, AIShape, astroShape, plane, cube;
 	private TextureImage ghostT, avatarSkin, moonSkin, border, moonTerrain, AISkin, astroSkin;
 
 	// light
@@ -152,6 +154,7 @@ public class MyGame extends VariableFrameRateGame
 		ghostS = new ImportedModel("Paddle.obj");
     	moonTShape = new TerrainPlane(1000);
 		plane = new Plane();
+		cube = new Cube();
 	}
 
 	@Override
@@ -203,31 +206,31 @@ public class MyGame extends VariableFrameRateGame
 		moon.setHeightMap(moonTerrain);
 
 		// build right wall
-		rightWall = new GameObject(GameObject.root(), plane, border);
+		rightWall = new Border(cube, border);
 		initialTranslation = (new Matrix4f()).translation(50,0,0);
-		initialScale = (new Matrix4f()).scaling(100.0f);
+		initialScale = (new Matrix4f()).scaling(2.0f, 5.0f, 10.0f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(90), 0, 0, 1);
 		rightWall.setLocalTranslation(initialTranslation);
 		rightWall.setLocalScale(initialScale);
-		rightWall.setLocalRotation(initialRotation);
+		//rightWall.setLocalRotation(initialRotation);
 
 		// build left wall
-		leftWall = new GameObject(GameObject.root(), plane, border);
+		leftWall = new Border(cube, border);
 		initialTranslation = (new Matrix4f()).translation(-50,0,0);
-		initialScale = (new Matrix4f()).scaling(100.0f);
+		initialScale = (new Matrix4f()).scaling(2.0f, 5.0f, 10.0f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 0, 0, 1);
 		leftWall.setLocalTranslation(initialTranslation);
 		leftWall.setLocalScale(initialScale);
-		leftWall.setLocalRotation(initialRotation);
+		//leftWall.setLocalRotation(initialRotation);
 
 		// build ceiling
-		ceiling = new GameObject(GameObject.root(), plane, border);
+		ceiling = new Border(cube, border);
 		initialTranslation = (new Matrix4f()).translation(0,50,0);
-		initialScale = (new Matrix4f()).scaling(100.0f);
+		initialScale = (new Matrix4f()).scaling(5.0f, 2.0f, 10.0f);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(180), 0, 0, 1);
 		ceiling.setLocalTranslation(initialTranslation);
 		ceiling.setLocalScale(initialScale);
-		ceiling.setLocalRotation(initialRotation);
+		//ceiling.setLocalRotation(initialRotation);
 
     	// build asteroid
 		asteroid = new GameObject(GameObject.root(), astroShape, astroSkin);
@@ -376,7 +379,8 @@ public class MyGame extends VariableFrameRateGame
 		// right wall
 		translation = new Matrix4f(rightWall.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
-		rwP = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), tempTransform, left, 0.0f);
+		rwID = physicsEngine.nextUID();
+		rwP = physicsEngine.addStaticPlaneObject(rwID, tempTransform, left, 0.0f);
 
 		rwP.setBounciness(1.0f);
 		rightWall.setPhysicsObject(rwP);
@@ -384,7 +388,8 @@ public class MyGame extends VariableFrameRateGame
 		// left wall
 		translation = new Matrix4f(leftWall.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
-		lwP = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), tempTransform, right, 0.0f);
+		lwID = physicsEngine.nextUID();
+		lwP = physicsEngine.addStaticPlaneObject(lwID, tempTransform, right, 0.0f);
 
 		lwP.setBounciness(1.0f);
 		leftWall.setPhysicsObject(lwP);
@@ -392,7 +397,8 @@ public class MyGame extends VariableFrameRateGame
 		// ceiling
 		translation = new Matrix4f(ceiling.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
-		ceilP = physicsEngine.addStaticPlaneObject(physicsEngine.nextUID(), tempTransform, down, 0.0f);
+		ceilID = physicsEngine.nextUID();
+		ceilP = physicsEngine.addStaticPlaneObject(ceilID, tempTransform, down, 0.0f);
 
 		ceilP.setBounciness(1.0f);
 		ceiling.setPhysicsObject(ceilP);
@@ -449,8 +455,17 @@ public class MyGame extends VariableFrameRateGame
 
 		// AI update
 		physicsEngine.removeObject(oppID);
+		physicsEngine.removeObject(rwID);
+		physicsEngine.removeObject(lwID);
+		physicsEngine.removeObject(ceilID);
 		opponent.trackingAI(asteroid);
+		rightWall.trackingWall(asteroid);
+		leftWall.trackingWall(asteroid);
+		ceiling.trackingCeil(asteroid);
 		rebuildOpponent();
+		rebuildRightWall();
+		rebuildLeftWall();
+		rebuildCeiling();
 
 		// ball rotation
     	asteroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
@@ -533,6 +548,48 @@ public class MyGame extends VariableFrameRateGame
 
 		opponentP.setBounciness(1.0f);
 		opponent.setPhysicsObject(opponentP);
+	}
+
+	private void rebuildRightWall() {
+		double[ ] tempTransform;
+		Matrix4f translation;
+		float left[ ] = {-1,0,0};
+		
+		translation = new Matrix4f(rightWall.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		rwID = physicsEngine.nextUID();
+		rwP = physicsEngine.addStaticPlaneObject(rwID, tempTransform, left, 0.0f);
+
+		rwP.setBounciness(1.0f);
+		rightWall.setPhysicsObject(rwP);
+	}
+
+	private void rebuildLeftWall() {
+		double[ ] tempTransform;
+		Matrix4f translation;
+		float right[ ] = {1,0,0};
+		
+		translation = new Matrix4f(leftWall.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		lwID = physicsEngine.nextUID();
+		lwP = physicsEngine.addStaticPlaneObject(lwID, tempTransform, right, 0.0f);
+
+		lwP.setBounciness(1.0f);
+		leftWall.setPhysicsObject(lwP);
+	}
+
+	private void rebuildCeiling() {
+		double[ ] tempTransform;
+		Matrix4f translation;
+		float down[ ] = {0,-1,0};
+		
+		translation = new Matrix4f(ceiling.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		ceilID = physicsEngine.nextUID();
+		ceilP = physicsEngine.addStaticPlaneObject(ceilID, tempTransform, down, 0.0f);
+
+		ceilP.setBounciness(1.0f);
+		ceiling.setPhysicsObject(ceilP);
 	}
 
 	@Override
