@@ -38,6 +38,7 @@ import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import javax.swing.*;
 
 import org.joml.*;
 
@@ -59,6 +60,9 @@ public class MyGame extends VariableFrameRateGame
 	private Camera cam;
 	public Camera getCam() { return cam; }
 
+	//
+	private JPanel menu;
+
 	// managers
 	private InputManager im;
 	private GhostManager gm;
@@ -74,7 +78,7 @@ public class MyGame extends VariableFrameRateGame
 	private Border rightWall, leftWall, ceiling;
 	private PhysicsObject asteroidP, avatarP, opponentP, moonP, rwP, lwP, ceilP;
 	public PhysicsObject getPhysicsAvatar() { return avatarP; }
-	public int oppID, avaID, rwID, lwID, ceilID;
+	public int astroID, oppID, avaID, rwID, lwID, ceilID;
 	//public float left[ ], right[ ], down[ ];
 	private Avatar avatar;
 	public Avatar getAvatar() { return avatar; }
@@ -82,7 +86,7 @@ public class MyGame extends VariableFrameRateGame
 
 	// shapes and textures
   	private AnimatedShape avatarShape;
-	private ObjShape ghostS, moonTShape, AIShape, astroShape, plane, cube;
+	private ObjShape ghostS, moonTShape, AIShape, astroShape, plane, cube, floatingWall;
 	private TextureImage ghostT, avatarSkin, moonSkin, border, moonTerrain, AISkin, astroSkin;
 
 	// light
@@ -155,6 +159,7 @@ public class MyGame extends VariableFrameRateGame
     	moonTShape = new TerrainPlane(1000);
 		plane = new Plane();
 		cube = new Cube();
+		floatingWall = new ImportedModel("rock.obj");
 	}
 
 	@Override
@@ -166,7 +171,7 @@ public class MyGame extends VariableFrameRateGame
     	astroSkin = new TextureImage("asteroid.png");
     	moonSkin = new TextureImage("checkerboardSmall.jpg");
 		moonTerrain = new TextureImage("moonHM.jpg");
-		border = new TextureImage("NeonBorder.png");
+		border = new TextureImage("rock.png");
 	}
 
   @Override
@@ -200,42 +205,42 @@ public class MyGame extends VariableFrameRateGame
 		// build moon terrain
 		moon = new GameObject(GameObject.root(), moonTShape, moonSkin);
 		initialTranslation = (new Matrix4f()).translation(0,-50,0);
-		initialScale = (new Matrix4f()).scaling(100.0f);
+		initialScale = (new Matrix4f()).scaling(100f);//1000f, 10f, 1000f);
 		moon.setLocalTranslation(initialTranslation);
 		moon.setLocalScale(initialScale);
 		moon.setHeightMap(moonTerrain);
 
 		// build right wall
-		rightWall = new Border(cube, border);
+		rightWall = new Border(floatingWall, border);
 		initialTranslation = (new Matrix4f()).translation(50,0,0);
-		initialScale = (new Matrix4f()).scaling(2.0f, 5.0f, 10.0f);
-		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(90), 0, 0, 1);
+		initialScale = (new Matrix4f()).scaling(4.0f);
+		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(90), 0, 1, 0);
 		rightWall.setLocalTranslation(initialTranslation);
 		rightWall.setLocalScale(initialScale);
-		//rightWall.setLocalRotation(initialRotation);
+		rightWall.setLocalRotation(initialRotation);
 
 		// build left wall
-		leftWall = new Border(cube, border);
+		leftWall = new Border(floatingWall, border);
 		initialTranslation = (new Matrix4f()).translation(-50,0,0);
-		initialScale = (new Matrix4f()).scaling(2.0f, 5.0f, 10.0f);
-		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 0, 0, 1);
+		initialScale = (new Matrix4f()).scaling(4.0f);
+		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 0, 1, 0);
 		leftWall.setLocalTranslation(initialTranslation);
 		leftWall.setLocalScale(initialScale);
-		//leftWall.setLocalRotation(initialRotation);
+		leftWall.setLocalRotation(initialRotation);
 
 		// build ceiling
-		ceiling = new Border(cube, border);
+		ceiling = new Border(floatingWall, border);
 		initialTranslation = (new Matrix4f()).translation(0,50,0);
-		initialScale = (new Matrix4f()).scaling(5.0f, 2.0f, 10.0f);
-		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(180), 0, 0, 1);
+		initialScale = (new Matrix4f()).scaling(4.0f);
+		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		ceiling.setLocalTranslation(initialTranslation);
 		ceiling.setLocalScale(initialScale);
-		//ceiling.setLocalRotation(initialRotation);
+		ceiling.setLocalRotation(initialRotation);
 
     	// build asteroid
 		asteroid = new GameObject(GameObject.root(), astroShape, astroSkin);
 		initialTranslation = (new Matrix4f()).translation(0, 0, 0);
-		initialScale = (new Matrix4f()).scaling(1.0f);
+		initialScale = (new Matrix4f()).scaling(2.0f);
 		asteroid.setLocalTranslation(initialTranslation);
 		asteroid.setLocalScale(initialScale);
 
@@ -306,6 +311,21 @@ public class MyGame extends VariableFrameRateGame
 		//initialize audio
 		initAudio();
 
+		// menu panel
+		menu = new JPanel();
+		menu.setBounds(50, 50, 1000, 1000);
+		menu.setBackground(Color.gray);
+		JButton b1=new JButton("Button 1");     
+        b1.setBounds(50,100,80,30);    
+        b1.setBackground(Color.yellow);   
+        JButton b2=new JButton("Button 2");   
+        b2.setBounds(100,100,80,30);    
+        b2.setBackground(Color.green);   
+        menu.add(b1);
+		menu.add(b2);  
+		engine.getRenderSystem().add(menu);
+
+		// system time and window dimensions
 		prevTime = System.currentTimeMillis();
 		startTime = System.currentTimeMillis();
 		(engine.getRenderSystem()).setWindowDimensions(1900,1000);
@@ -342,7 +362,8 @@ public class MyGame extends VariableFrameRateGame
 		// asteroid
 		translation = new Matrix4f(asteroid.getLocalTranslation());
 		tempTransform = toDoubleArray(translation.get(vals));
-		asteroidP = physicsEngine.addSphereObject(physicsEngine.nextUID(), 1f, tempTransform, 0.75f);
+		astroID = physicsEngine.nextUID();
+		asteroidP = physicsEngine.addSphereObject(astroID, 1f, tempTransform, 1.5f);
 
 		asteroidP.setBounciness(1.01f); // minimum speedup on each bounce without loosing velosity
 		asteroidP.setLinearVelocity(velo);
@@ -468,7 +489,7 @@ public class MyGame extends VariableFrameRateGame
 		rebuildCeiling();
 
 		// ball rotation
-    	asteroid.setLocalRotation((new Matrix4f()).rotation(3.0f*(float)elapsedTime, 0, 1, 0));
+    	asteroid.setLocalRotation((new Matrix4f()).rotation((float)elapsedTime, 0, 1, 0));
 
 		// colision detection
 		Matrix4f mat = new Matrix4f();
@@ -489,9 +510,11 @@ public class MyGame extends VariableFrameRateGame
 		
 		// Check for Win/Loose Scenario
 		if (asteroid.getWorldLocation().z() < -51) {
-			//System.out.println("You Loose");
+			System.out.println("You Loose");
+			restartGame();
 		} else if (asteroid.getWorldLocation().z() > 51) {
-			//System.out.println("You Win");
+			System.out.println("You Win");
+			restartGame();
 		}
 	}
 
@@ -535,6 +558,23 @@ public class MyGame extends VariableFrameRateGame
 				} 
 			} 
 		} 
+	}
+
+	private void rebuildAsteroid() {
+		double[ ] tempTransform;
+		Matrix4f translation;
+		float velo[] = {10f,5f,35f}; // start velosity of the ball
+		
+		translation = new Matrix4f(asteroid.getLocalTranslation());
+		tempTransform = toDoubleArray(translation.get(vals));
+		astroID = physicsEngine.nextUID();
+		asteroidP = physicsEngine.addSphereObject(astroID, 1f, tempTransform, 1.5f);
+
+		asteroidP.setBounciness(1.01f); // minimum speedup on each bounce without loosing velosity
+		asteroidP.setLinearVelocity(velo);
+		asteroidP.setFriction(0);
+		asteroidP.setDamping(0, 0);
+		asteroid.setPhysicsObject(asteroidP);
 	}
 
 	private void rebuildOpponent() {
@@ -590,6 +630,12 @@ public class MyGame extends VariableFrameRateGame
 
 		ceilP.setBounciness(1.0f);
 		ceiling.setPhysicsObject(ceilP);
+	}
+
+	private void restartGame() {
+		physicsEngine.removeObject(astroID);
+		asteroid.setLocalLocation(new Vector3f(0, 0, 0));
+		rebuildAsteroid();
 	}
 
 	@Override
