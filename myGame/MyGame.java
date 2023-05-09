@@ -210,10 +210,12 @@ public class MyGame extends VariableFrameRateGame
 		moon.setLocalScale(initialScale);
 		moon.setHeightMap(moonTerrain);
 
+		float scale = 8.0f;
+
 		// build right wall
 		rightWall = new Border(floatingWall, border);
 		initialTranslation = (new Matrix4f()).translation(50,0,0);
-		initialScale = (new Matrix4f()).scaling(4.0f);
+		initialScale = (new Matrix4f()).scaling(scale);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(90), 0, 1, 0);
 		rightWall.setLocalTranslation(initialTranslation);
 		rightWall.setLocalScale(initialScale);
@@ -222,7 +224,7 @@ public class MyGame extends VariableFrameRateGame
 		// build left wall
 		leftWall = new Border(floatingWall, border);
 		initialTranslation = (new Matrix4f()).translation(-50,0,0);
-		initialScale = (new Matrix4f()).scaling(4.0f);
+		initialScale = (new Matrix4f()).scaling(scale);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 0, 1, 0);
 		leftWall.setLocalTranslation(initialTranslation);
 		leftWall.setLocalScale(initialScale);
@@ -231,7 +233,7 @@ public class MyGame extends VariableFrameRateGame
 		// build ceiling
 		ceiling = new Border(floatingWall, border);
 		initialTranslation = (new Matrix4f()).translation(0,50,0);
-		initialScale = (new Matrix4f()).scaling(4.0f);
+		initialScale = (new Matrix4f()).scaling(scale);
 		initialRotation = (new Matrix4f()).rotation((float)Math.toRadians(-90), 1, 0, 0);
 		ceiling.setLocalTranslation(initialTranslation);
 		ceiling.setLocalScale(initialScale);
@@ -489,7 +491,7 @@ public class MyGame extends VariableFrameRateGame
 		rebuildCeiling();
 
 		// ball rotation
-    	asteroid.setLocalRotation((new Matrix4f()).rotation((float)elapsedTime, 0, 1, 0));
+    	//asteroid.setLocalRotation((new Matrix4f()).rotation(0.1f*(float)elapsedTime, 0, 1, 0));
 
 		// colision detection
 		Matrix4f mat = new Matrix4f();
