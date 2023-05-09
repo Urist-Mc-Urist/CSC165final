@@ -1,6 +1,7 @@
 package myGame;
 
 import tage.*;
+import tage.Light.LightType;
 import tage.audio.AudioManagerFactory;
 import tage.audio.AudioResource;
 import tage.audio.AudioResourceType;
@@ -90,11 +91,37 @@ public class MyGame extends VariableFrameRateGame
 	private TextureImage ghostT, avatarSkin, moonSkin, border, moonTerrain, AISkin, astroSkin;
 
 	// light
-	private Light light;
+	private Light light, spotlight1, spotlight2, astroLight;
+	private boolean togglableLight = true;
+	private float spotlightHeight = 10000f;
+	public boolean isLightOn() { return togglableLight; }
+	public void turnLightOn() { 
+		togglableLight = true; 
+		spotlight1.setLocation(new Vector3f(0f, spotlightHeight, 0f)); 
+		astroLight.setDiffuse(0, 0, 0);
+		astroLight.setSpecular(0, 0, 0);
+	}
+	public void turnLightOff() { 
+		togglableLight = false; 
+		spotlight1.setLocation(new Vector3f(0f, -200f, 0f)); 
+		astroLight.setDiffuse(1, 0, 0);
+		astroLight.setSpecular(1, 0, 0);
+	}
 
 	// sound
 	private IAudioManager audioMgr;
-	private Sound backgroundMusic, astroSound;
+	private AudioResource resource1, resource2, resource3;
+	private Sound backgroundMusic1, backgroundMusic2, astroSound;
+	public void setBackgroundMusic(int i) {
+		if (i == 0) {
+			backgroundMusic1.play();
+		} else if (i == 1) {
+			backgroundMusic1.stop();
+			backgroundMusic2.play();
+		} else {
+			backgroundMusic2.stop();
+		}
+	}
 
 	// multiplayer tracking
 	private int playerNum = 0;
@@ -169,8 +196,8 @@ public class MyGame extends VariableFrameRateGame
     	avatarSkin = new TextureImage("SpaceshipTex.png");
 		AISkin = new TextureImage("Paddle.png");
     	astroSkin = new TextureImage("asteroid.png");
-    	moonSkin = new TextureImage("checkerboardSmall.jpg");
-		moonTerrain = new TextureImage("moonHM.jpg");
+    	moonSkin = new TextureImage("squareMoonMap.jpg");
+		moonTerrain = new TextureImage("squareMoonMap.jpg");
 		border = new TextureImage("rock.png");
 	}
 
@@ -205,7 +232,7 @@ public class MyGame extends VariableFrameRateGame
 		// build moon terrain
 		moon = new GameObject(GameObject.root(), moonTShape, moonSkin);
 		initialTranslation = (new Matrix4f()).translation(0,-50,0);
-		initialScale = (new Matrix4f()).scaling(100f);//1000f, 10f, 1000f);
+		initialScale = (new Matrix4f()).scaling(500f, 5f, 500f);
 		moon.setLocalTranslation(initialTranslation);
 		moon.setLocalScale(initialScale);
 		moon.setHeightMap(moonTerrain);
@@ -250,16 +277,35 @@ public class MyGame extends VariableFrameRateGame
 
 	@Override
 	public void initializeLights()
-	{	Light.setGlobalAmbient(.5f, .5f, .5f);
+	{	Light.setGlobalAmbient(0f, 0f, 0f);
 
 		light = new Light();
 		light.setLocation(new Vector3f(0f, 5f, 0f));
 		(engine.getSceneGraph()).addLight(light);
+
+		spotlight1 = new Light();
+		spotlight1.setType(LightType.SPOTLIGHT);
+		spotlight1.setLocation(new Vector3f(0f, spotlightHeight, 0f));
+		spotlight1.setDirection(new Vector3f(0, -1, 0));
+		spotlight1.setAmbient(0.5f, 0.5f, 0.5f);
+		(engine.getSceneGraph()).addLight(spotlight1);
+
+		//spotlight2 = new Light();
+		//spotlight2.setType(LightType.SPOTLIGHT);
+		//spotlight2.setLocation(new Vector3f(0f, 100f, 50f));
+		//spotlight2.setDirection(new Vector3f(0, -1, -1));
+		//(engine.getSceneGraph()).addLight(spotlight2);
+
+		astroLight = new Light();
+		astroLight.setLocation(new Vector3f(0,0,0));
+		astroLight.setSpecular(0, 0, 0);
+		astroLight.setDiffuse(0, 0, 0);
+		astroLight.setRange(0.1f);
+		(engine.getSceneGraph()).addLight(astroLight);
 	}
 
 	public void initAudio()
 	{ 
-		AudioResource resource1, resource2;
 		audioMgr = AudioManagerFactory.createAudioManager("tage.audio.joal.JOALAudioManager");
 		if (!audioMgr.initialize())
 		{ 
@@ -271,16 +317,24 @@ public class MyGame extends VariableFrameRateGame
 		// https://pixabay.com/music/techno-trance-background-loop-melodic-techno-04-3822/ - zenman.wav
 		// https://pixabay.com/sound-effects/054883-bounce-38937/ - bounce.wav
 		resource1 = audioMgr.createAudioResource("assets/sounds/space.wav", AudioResourceType.AUDIO_SAMPLE);
-		resource2 = audioMgr.createAudioResource("assets/sounds/bounce.wav", AudioResourceType.AUDIO_SAMPLE);
+		resource2 = audioMgr.createAudioResource("assets/sounds/zenman.wav", AudioResourceType.AUDIO_SAMPLE);
+		resource3 = audioMgr.createAudioResource("assets/sounds/bounce.wav", AudioResourceType.AUDIO_SAMPLE);
 		
-		backgroundMusic = new Sound(resource1,SoundType.SOUND_MUSIC, 5, true);
-		backgroundMusic.initialize(audioMgr);
-		backgroundMusic.setMaxDistance(100.0f);
-		backgroundMusic.setMinDistance(0.5f);
-		backgroundMusic.setRollOff(1000f);
-		backgroundMusic.setLocation(ceiling.getWorldLocation());
+		backgroundMusic1 = new Sound(resource1,SoundType.SOUND_MUSIC, 5, true);
+		backgroundMusic1.initialize(audioMgr);
+		backgroundMusic1.setMaxDistance(100.0f);
+		backgroundMusic1.setMinDistance(0.5f);
+		backgroundMusic1.setRollOff(1000f);
+		backgroundMusic1.setLocation(ceiling.getWorldLocation());
 
-		astroSound = new Sound(resource2, SoundType.SOUND_EFFECT, 50, false);
+		backgroundMusic2 = new Sound(resource2,SoundType.SOUND_MUSIC, 5, true);
+		backgroundMusic2.initialize(audioMgr);
+		backgroundMusic2.setMaxDistance(100.0f);
+		backgroundMusic2.setMinDistance(0.5f);
+		backgroundMusic2.setRollOff(1000f);
+		backgroundMusic2.setLocation(ceiling.getWorldLocation());
+
+		astroSound = new Sound(resource3, SoundType.SOUND_EFFECT, 50, false);
 		astroSound.initialize(audioMgr);
 		astroSound.setMaxDistance(100.0f);
 		astroSound.setMinDistance(0.5f);
@@ -288,7 +342,7 @@ public class MyGame extends VariableFrameRateGame
 		astroSound.setLocation(asteroid.getWorldLocation());
 		
 		setEarParameters();
-		backgroundMusic.play();
+		backgroundMusic1.play();
 	}
 
 	
@@ -349,6 +403,14 @@ public class MyGame extends VariableFrameRateGame
 		HorizontalMovement horMovement = new HorizontalMovement(this);
 		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.A, horMovement, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
 		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.D, horMovement, InputManager.INPUT_ACTION_TYPE.REPEAT_WHILE_DOWN);
+
+		// Light on/off
+		LightSwitch lightswitch = new LightSwitch(this);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.L, lightswitch, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
+
+		// switch music
+		ToggleMusic toggleMusic = new ToggleMusic(this);
+		im.associateActionWithAllKeyboards(net.java.games.input.Component.Identifier.Key.M, toggleMusic, InputManager.INPUT_ACTION_TYPE.ON_PRESS_ONLY);
 
 		// --------------------- Create Physics World ------------------------------
 		float mass = 1.0f;
@@ -492,6 +554,7 @@ public class MyGame extends VariableFrameRateGame
 
 		// ball rotation
     	//asteroid.setLocalRotation((new Matrix4f()).rotation(0.1f*(float)elapsedTime, 0, 1, 0));
+		astroLight.setLocation(asteroid.getWorldLocation());
 
 		// colision detection
 		Matrix4f mat = new Matrix4f();
