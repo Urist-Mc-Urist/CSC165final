@@ -41,7 +41,7 @@ public class ProtocolClient extends GameConnectionClient
 			// Format: (join,success,player) or (join,failure,player)
 			if(messageTokens[0].compareTo("join") == 0)
 			{	if(messageTokens[1].compareTo("success") == 0)
-				{	System.out.println("join success confirmed");
+				{	System.out.println("join success confirmed: " + messageTokens[1]);
 					game.setIsConnected(true);
 					int player = Integer.parseInt(messageTokens[2]);
 					game.setPlayerNum(player);
@@ -71,6 +71,7 @@ public class ProtocolClient extends GameConnectionClient
 			{	// create a new ghost avatar
 				// Parse out the id into a UUID
 				UUID ghostID = UUID.fromString(messageTokens[1]);
+				//System.out.println("ghost id: " + ghostID);
 				
 				// Parse out the position into a Vector3f
 				Vector3f ghostPosition = new Vector3f(
@@ -83,6 +84,12 @@ public class ProtocolClient extends GameConnectionClient
 				}	catch (IOException e)
 				{	System.out.println("error creating ghost avatar");
 				}
+
+				//try
+				//{	ghostManager.createGhostAsteroid(ghostID, new Vector3f(0, 0, 0));
+				//}	catch (IOException e)
+				//{	System.out.println("error creating ghost asteroid");
+				//}
 			}
 			
 			// Handle WANTS_DETAILS message

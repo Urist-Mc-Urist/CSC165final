@@ -21,7 +21,7 @@ public class GhostManager
 	}
 	
 	public void createGhostAvatar(UUID id, Vector3f position) throws IOException
-	{	System.out.println("adding ghost with ID --> " + id);
+	{	System.out.println("adding ghost avatar with ID --> " + id);
 		ObjShape s = game.getGhostShape();
 		TextureImage t = game.getGhostTexture();
 		GhostAvatar newAvatar = new GhostAvatar(id, s, t, position);
@@ -63,5 +63,15 @@ public class GhostManager
 		else
 		{	System.out.println("tried to update ghost avatar position, but unable to find ghost in list");
 		}
+	}
+
+	public void createGhostAsteroid(UUID id, Vector3f position) throws IOException
+	{	System.out.println("adding ghost asteroid with ID --> " + id);
+		ObjShape s = game.getAstroShape();
+		TextureImage t = game.getAstroTexture();
+		GhostAvatar ball = new GhostAvatar(id, s, t, position);
+		Matrix4f initialScale = (new Matrix4f()).scaling(2f);
+		ball.setLocalScale(initialScale);
+		ghostAvatars.add(ball);
 	}
 }

@@ -68,11 +68,15 @@ public class MyGame extends VariableFrameRateGame
 	private InputManager im;
 	private GhostManager gm;
 
-	// update variables
-	private int counter=0;
+	// hud variables
+	private int winCount = 0;
+	private int looseCount = 0;
 	private Vector3f currentPosition;
 	private Matrix4f initialTranslation, initialRotation, initialScale;
-	private double startTime, prevTime, elapsedTime, amt;
+
+	// syst varaiables
+	private double startTime, prevTime, elapsedTime;
+	private double totalGameTime = 0;
 
 	// objects and avatars
 	private GameObject moon, asteroid;
@@ -148,13 +152,6 @@ public class MyGame extends VariableFrameRateGame
 
   	//skybox
 	private int fluffyClouds;
-
-	// test variables
-	private boolean r = true;
-	private float n = 0.0f;
-	private int numColls = 0;
-	private boolean north = true;
-	private float m = 0.0f;
 
 	public MyGame(String serverAddress, int serverPort, String protocol)
 	{	super();
@@ -327,18 +324,18 @@ public class MyGame extends VariableFrameRateGame
 		backgroundMusic1.setRollOff(1000f);
 		backgroundMusic1.setLocation(ceiling.getWorldLocation());
 
-		backgroundMusic2 = new Sound(resource2,SoundType.SOUND_MUSIC, 5, true);
+		backgroundMusic2 = new Sound(resource2,SoundType.SOUND_MUSIC, 2, true);
 		backgroundMusic2.initialize(audioMgr);
 		backgroundMusic2.setMaxDistance(100.0f);
 		backgroundMusic2.setMinDistance(0.5f);
 		backgroundMusic2.setRollOff(1000f);
 		backgroundMusic2.setLocation(ceiling.getWorldLocation());
 
-		astroSound = new Sound(resource3, SoundType.SOUND_EFFECT, 50, false);
+		astroSound = new Sound(resource3, SoundType.SOUND_EFFECT, 100, false);
 		astroSound.initialize(audioMgr);
 		astroSound.setMaxDistance(100.0f);
 		astroSound.setMinDistance(0.5f);
-		astroSound.setRollOff(0.1f);
+		astroSound.setRollOff(0.05f);
 		astroSound.setLocation(asteroid.getWorldLocation());
 		
 		setEarParameters();
@@ -510,19 +507,20 @@ public class MyGame extends VariableFrameRateGame
 	@Override
 	public void update()
 	{	elapsedTime = System.currentTimeMillis() - prevTime;
-		prevTime = System.currentTimeMillis();
-		amt = elapsedTime * 0.03;
+		double now = System.currentTimeMillis() - startTime;
 		
 		// build and set HUD
-		int elapsTimeSec = Math.round((float)(System.currentTimeMillis()-startTime)/1000.0f);
+		int elapsTimeSec = Math.round((float)(now-totalGameTime)/1000.0f);
 		String elapsTimeStr = Integer.toString(elapsTimeSec);
-		String countColl = Integer.toString(numColls);
-		String dispStr1 = "Time = " + elapsTimeStr;
-		String dispStr2 = "Collisions = " + countColl;
+		String numP = Integer.toString(playerNum);
+		String wins = Integer.toString(winCount);
+		String losses = Integer.toString(looseCount);
+		String dispStr1 = "Player: " + numP + ", Time: " + elapsTimeStr;
+		String dispStr2 = "Wins: " + wins + ", Losses: " + losses;
 		Vector3f hud1Color = new Vector3f(1,0,0);
 		Vector3f hud2Color = new Vector3f(0,0,1);
-		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 15);
-		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 15);
+		(engine.getHUDmanager()).setHUD1(dispStr1, hud1Color, 15, 100);
+		(engine.getHUDmanager()).setHUD2(dispStr2, hud2Color, 500, 100);
 		
 		// -------------------- GAME UPDATE ---------------------
 
@@ -576,9 +574,13 @@ public class MyGame extends VariableFrameRateGame
 		// Check for Win/Loose Scenario
 		if (asteroid.getWorldLocation().z() < -51) {
 			System.out.println("You Loose");
+			looseCount++;
+			totalGameTime = System.currentTimeMillis()-startTime;
 			restartGame();
 		} else if (asteroid.getWorldLocation().z() > 51) {
 			System.out.println("You Win");
+			winCount++;
+			totalGameTime = System.currentTimeMillis();
 			restartGame();
 		}
 	}
@@ -734,6 +736,8 @@ public class MyGame extends VariableFrameRateGame
 
 	public ObjShape getGhostShape() { return ghostS; }
 	public TextureImage getGhostTexture() { return ghostT; }
+	public ObjShape getAstroShape() { return astroShape; }
+	public TextureImage getAstroTexture() { return astroSkin; }
 	public GhostManager getGhostManager() { return gm; }
 	public Engine getEngine() { return engine; }
 	
